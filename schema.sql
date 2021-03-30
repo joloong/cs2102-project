@@ -9,5 +9,7 @@ CREATE TABLE IF NOT EXISTS Employees (
     address text not null,
     depart_date date
 
-    constraint valid_join_depart_date check ((depart_date - join_date) >= 0);
+    constraint valid_join_depart_date check (
+        (depart_date IS NULL) OR ((depart_date - join_date) >= 0)
+    )
 );
