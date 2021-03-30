@@ -23,7 +23,11 @@ CREATE TABLE IF NOT EXISTS Pay_slips (
     foreign key     (eid) references Employees
                     on delete cascade
     
-    constraint non_negative_amount check (
-        (amount >= 0)
+    constraint non_negative_amount check (amount >= 0)
+    constraint valid_num_work_hours check (
+        (num_work_hours IS NULL) OR (num_work_hours >= 0)
+    )
+    constraint valid_num_work_days check (
+        (num_work_days IS NULL) OR (num_work_days >= 0)
     )
 );
