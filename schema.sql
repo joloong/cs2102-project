@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS Employees (
 
 CREATE TABLE IF NOT EXISTS Pay_slips (
     payment_date    date,
-    amount          integer default 0,
+    amount          integer not null default 0,
     num_work_hours  integer,
     num_work_days   integer,
     primary key     (payment_date, eid),
