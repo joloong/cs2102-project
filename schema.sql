@@ -14,6 +14,27 @@ CREATE TABLE IF NOT EXISTS Employees (
     )
 );
 
+CREATE TABLE IF NOT EXISTS Part_time_Emp (
+    eid         char(20) primary key references Employees
+                on delete cascade,
+    hourly_rate integer not null
+
+    constraint valid_hourly_rate check ( hourly_rate >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS Full_time_Emp (
+    eid             char(20) primary key references Employees
+                    on delete cascade,
+    monthly_rate    integer not null
+
+    constraint valid_monthly_rate check ( monthly_rate >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS Instructors (
+    eid             char(20) primary key references Employees
+    -- If overlap is false, on delete cascade needed?
+);
+
 CREATE TABLE IF NOT EXISTS Pay_slips (
     payment_date    date,
     amount          integer not null default 0,
