@@ -62,7 +62,15 @@ CREATE TABLE IF NOT EXISTS Customers (
 )
 
 CREATE TABLE IF NOT EXISTS Credit_cards (
-    number      char(20)    primary key,
+    cc_number   char(20)    primary key,
     CVV         integer     not null,
     expiry_date date        not null
+)
+
+CREATE TABLE IF NOT EXISTS Owns (
+    cc_number   char(20)    primary key references Credit_cards,
+    cust_id     char(20)    not null,
+    from_date   date        not null,
+
+    foreign key (cust_id) references Customers(cust_id)
 )
