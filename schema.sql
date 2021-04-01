@@ -74,3 +74,16 @@ CREATE TABLE IF NOT EXISTS Owns (
 
     foreign key (cust_id) references Customers(cust_id)
 )
+
+CREATE TABLE IF NOT EXISTS Course_packages (
+    package_id              char(20)    primary key,
+    name                    text        not null,
+    price                   integer     not null,
+    num_free_registrations  integer     not null,
+    sale_start_date         date        not null,
+    sale_end_date           date        not null,
+
+    constraint start_lte_end_date check (
+        sale_start_date <= sale_end_date
+    )
+)
