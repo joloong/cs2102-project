@@ -108,3 +108,14 @@ CREATE TABLE IF NOT EXISTS Course_packages (
         sale_start_date <= sale_end_date
     )
 );
+
+CREATE TABLE IF NOT EXISTS Buys (
+    transaction_date            date,
+    cc_number                   char(20),
+    package_id                  char(20),
+    num_remaining_registrations integer not null,
+
+    primary key (transaction_date, cc_number, package_id),
+    foreign key (cc_number) references Owns(cc_number),
+    foreign key (package_id) references Course_packages(package_id)
+);
