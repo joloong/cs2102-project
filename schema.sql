@@ -32,7 +32,28 @@ CREATE TABLE IF NOT EXISTS Full_time_Emp (
 
 CREATE TABLE IF NOT EXISTS Instructors (
     eid             char(20) primary key references Employees
-    -- If overlap is false, on delete cascade needed?
+                    on delete cascade
+);
+
+CREATE TABLE IF NOT EXISTS Part_time_instructors (
+    -- Part_time_employees must be Part_time_instructors
+    eid             char(20) primary key references Part_time_instructors
+                    on delete cascade           
+);
+
+CREATE TABLE IF NOT EXISTS Full_time_instructors (
+    eid             char(20) primary key references Instructors
+                    on delete cascade,
+);
+
+CREATE TABLE IF NOT EXISTS Administrators (
+    eid             char(20) primary key references Instructors
+                    on delete cascade,
+);
+
+CREATE TABLE IF NOT EXISTS Managers (
+    eid             char(20) primary key references Instructors
+                    on delete cascade,
 );
 
 CREATE TABLE IF NOT EXISTS Pay_slips (
@@ -59,13 +80,13 @@ CREATE TABLE IF NOT EXISTS Customers (
     name        text        not null,
     email       text        not null,
     address     text        not null
-)
+);
 
 CREATE TABLE IF NOT EXISTS Credit_cards (
     cc_number   char(20)    primary key,
     CVV         integer     not null,
     expiry_date date        not null
-)
+);
 
 CREATE TABLE IF NOT EXISTS Owns (
     cc_number   char(20)    primary key references Credit_cards,
@@ -73,7 +94,7 @@ CREATE TABLE IF NOT EXISTS Owns (
     from_date   date        not null,
 
     foreign key (cust_id) references Customers(cust_id)
-)
+);
 
 CREATE TABLE IF NOT EXISTS Course_packages (
     package_id              char(20)    primary key,
@@ -86,4 +107,4 @@ CREATE TABLE IF NOT EXISTS Course_packages (
     constraint start_lte_end_date check (
         sale_start_date <= sale_end_date
     )
-)
+);
