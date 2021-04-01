@@ -60,3 +60,9 @@ CREATE TABLE IF NOT EXISTS Customers (
     email       text        not null,
     address     text        not null
 )
+
+CREATE TABLE IF NOT EXISTS Credit_cards (
+    number      char(20)    primary key,
+    CVV         integer     not null,
+    expiry_date date        not null
+)
