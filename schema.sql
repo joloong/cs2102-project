@@ -52,3 +52,11 @@ CREATE TABLE IF NOT EXISTS Pay_slips (
         (num_work_days IS NULL) OR (num_work_days >= 0)
     )
 );
+
+CREATE TABLE IF NOT EXISTS Customers (
+    cust_id     char(20)    primary key,
+    phone       text        not null,
+    name        text        not null,
+    email       text        not null,
+    address     text        not null
+)
