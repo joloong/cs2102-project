@@ -142,18 +142,18 @@ CREATE TABLE IF NOT EXISTS Courses (
     course_id   char(20)    primary key,
     title		text     	not null,
     duration	integer     not null,
-	description	text
+    description	text
 );
 
 CREATE TABLE IF NOT EXISTS Offerings (
 	course_id					char(20),
     launch_date					date,
-    start_date					date	not null,
-	end_date					date	not null,
-	registration_deadline		date	not null,
-    fees						integer not null,
-    seating_capacity			integer not null,
-    target_number_registrations	integer not null,
+    start_date					date	    not null,
+	end_date					date	    not null,
+	registration_deadline		date	    not null,
+    fees						integer     not null,
+    seating_capacity			integer     not null,
+    target_number_registrations	integer     not null,
 	
 	primary key	(launch_date, course_id),
 	foreign key	(course_id) references Courses
