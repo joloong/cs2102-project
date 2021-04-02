@@ -37,22 +37,22 @@ CREATE TABLE IF NOT EXISTS Instructors (
 
 CREATE TABLE IF NOT EXISTS Part_time_instructors (
     -- Part_time_employees must be Part_time_instructors
-    eid             char(20) primary key references Part_time_instructors
+    eid             char(20) primary key references Part_time_Emp
                     on delete cascade           
 );
 
 CREATE TABLE IF NOT EXISTS Full_time_instructors (
-    eid             char(20) primary key references Instructors
+    eid             char(20) primary key references Full_time_Emp
                     on delete cascade,
 );
 
 CREATE TABLE IF NOT EXISTS Administrators (
-    eid             char(20) primary key references Instructors
+    eid             char(20) primary key references Full_time_Emp
                     on delete cascade,
 );
 
 CREATE TABLE IF NOT EXISTS Managers (
-    eid             char(20) primary key references Instructors
+    eid             char(20) primary key references Full_time_Emp
                     on delete cascade,
 );
 
