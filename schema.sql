@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS Managers (
 );
 
 CREATE TABLE IF NOT EXISTS Pay_slips (
+    eid             char(20),
     payment_date    date,
     amount          integer not null default 0,
     num_work_hours  integer,
