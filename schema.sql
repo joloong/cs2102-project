@@ -60,17 +60,17 @@ CREATE TABLE IF NOT EXISTS Part_time_instructors (
 
 CREATE TABLE IF NOT EXISTS Full_time_instructors (
     eid             char(20) primary key references Full_time_Emp
-                    on delete cascade,
+                    on delete cascade
 );
 
 CREATE TABLE IF NOT EXISTS Administrators (
     eid             char(20) primary key references Full_time_Emp
-                    on delete cascade,
+                    on delete cascade
 );
 
 CREATE TABLE IF NOT EXISTS Managers (
     eid             char(20) primary key references Full_time_Emp
-                    on delete cascade,
+                    on delete cascade
 );
 
 CREATE TABLE IF NOT EXISTS Pay_slips (
@@ -81,12 +81,12 @@ CREATE TABLE IF NOT EXISTS Pay_slips (
 	
     primary key     (payment_date, eid),
     foreign key     (eid) references Employees
-                    on delete cascade
+                    on delete cascade,
     
-    constraint non_negative_amount check (amount >= 0)
+    constraint non_negative_amount check (amount >= 0),
     constraint valid_num_work_hours check (
         (num_work_hours IS NULL) OR (num_work_hours >= 0)
-    )
+    ),
     constraint valid_num_work_days check (
         (num_work_days IS NULL) OR (num_work_days >= 0)
     )
@@ -156,17 +156,17 @@ CREATE TABLE IF NOT EXISTS Offerings (
     target_number_registrations	integer     not null,
 	
 	primary key	(launch_date, course_id),
-	foreign key	(course_id) references Courses
+	foreign key	(course_id) references Courses,
 	
 	constraint within_capacity check (
 		target_number_registrations <= seating_capacity
-	)
+	),
 	constraint end_lte_start_date check (
 		start_date <= end_date
-	)
+	),
 	constraint register_lte_launch_date check (
 		launch_date <= registration_deadline
-	)
+	),
 	constraint start_lte_launch_date check (
 		launch_date <= start_date
 	)
@@ -181,11 +181,11 @@ CREATE TABLE IF NOT EXISTS Sessions (
 	end_time		integer		not null, 
 	
 	primary key (sid, course_id, launch_date),
-	foreign key (launch_date, course_id) references Offerings
+	foreign key (launch_date, course_id) references Offerings,
 	
 	constraint end_lte_start_time check (
 		start_time <= end_time
-	)
+	),
 	constraint session_lte_launch_date check (
 		launch_date <= session_date
 	)
