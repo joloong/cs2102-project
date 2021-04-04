@@ -23,3 +23,6 @@ DELETE FROM Cancels;
 
 INSERT INTO Credit_cards (cc_number, cvv, expiry_date) VALUES
 (1234567891011121, 123, '2013-06-01');
+
+INSERT INTO Customers (cust_name, address, phone, email) VALUES
+('Joel', 'CCK', '81234567', 'joel@cs2102.com');

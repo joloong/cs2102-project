@@ -17,8 +17,29 @@
 -- RELATIONS
 -- Manages, Handles, Specializes, In, Conducts
 
+DROP TABLE IF EXISTS Part_time_Emp CASCADE;
+DROP TABLE IF EXISTS Employees CASCADE;
+DROP TABLE IF EXISTS Full_time_Emp CASCADE;
+DROP TABLE IF EXISTS Instructors CASCADE;
+DROP TABLE IF EXISTS Part_time_instructors CASCADE;
+DROP TABLE IF EXISTS Full_time_instructors CASCADE;
+DROP TABLE IF EXISTS Administrators CASCADE;
+DROP TABLE IF EXISTS Managers CASCADE;
+DROP TABLE IF EXISTS Pay_slips CASCADE;
+DROP TABLE IF EXISTS Customers CASCADE;
+DROP TABLE IF EXISTS Credit_cards CASCADE;
+DROP TABLE IF EXISTS Owns CASCADE;
+DROP TABLE IF EXISTS Course_packages CASCADE;
+DROP TABLE IF EXISTS Buys CASCADE;
+DROP TABLE IF EXISTS Courses CASCADE;
+DROP TABLE IF EXISTS Offerings CASCADE;
+DROP TABLE IF EXISTS Sessions CASCADE;
+DROP TABLE IF EXISTS Registers CASCADE;
+DROP TABLE IF EXISTS Redeems CASCADE;
+DROP TABLE IF EXISTS Cancels CASCADE;
+
 CREATE TABLE IF NOT EXISTS Employees (
-    eid char(20)    primary key,
+    eid             SERIAL primary key,
     name            text not null,
     phone           text not null,
     email           text not null,
@@ -32,7 +53,7 @@ CREATE TABLE IF NOT EXISTS Employees (
 );
 
 CREATE TABLE IF NOT EXISTS Part_time_Emp (
-    eid         char(20) primary key references Employees
+    eid         integer primary key references Employees
                 on delete cascade,
     hourly_rate integer not null
 
@@ -40,7 +61,7 @@ CREATE TABLE IF NOT EXISTS Part_time_Emp (
 );
 
 CREATE TABLE IF NOT EXISTS Full_time_Emp (
-    eid             char(20) primary key references Employees
+    eid             integer primary key references Employees
                     on delete cascade,
     monthly_rate    integer not null
 
@@ -48,33 +69,33 @@ CREATE TABLE IF NOT EXISTS Full_time_Emp (
 );
 
 CREATE TABLE IF NOT EXISTS Instructors (
-    eid             char(20) primary key references Employees
+    eid             integer primary key references Employees
                     on delete cascade
 );
 
 CREATE TABLE IF NOT EXISTS Part_time_instructors (
     -- Part_time_employees must be Part_time_instructors
-    eid             char(20) primary key references Part_time_Emp
+    eid             integer primary key references Part_time_Emp
                     on delete cascade           
 );
 
 CREATE TABLE IF NOT EXISTS Full_time_instructors (
-    eid             char(20) primary key references Full_time_Emp
+    eid             integer primary key references Full_time_Emp
                     on delete cascade
 );
 
 CREATE TABLE IF NOT EXISTS Administrators (
-    eid             char(20) primary key references Full_time_Emp
+    eid             integer primary key references Full_time_Emp
                     on delete cascade
 );
 
 CREATE TABLE IF NOT EXISTS Managers (
-    eid             char(20) primary key references Full_time_Emp
+    eid             integer primary key references Full_time_Emp
                     on delete cascade
 );
 
 CREATE TABLE IF NOT EXISTS Pay_slips (
-    eid             char(20),
+    eid             integer,
     payment_date    date,
     amount          integer not null default 0,
     num_work_hours  integer,
@@ -94,30 +115,30 @@ CREATE TABLE IF NOT EXISTS Pay_slips (
 );
 
 CREATE TABLE IF NOT EXISTS Customers (
-    cust_id     char(20)    primary key,
+    cust_id     serial      primary key,
     phone       text        not null,
-    name        text        not null,
+    cust_name   text        not null,
     email       text        not null,
     address     text        not null
 );
 
 CREATE TABLE IF NOT EXISTS Credit_cards (
     cc_number   char(20)    primary key,
-    CVV         integer     not null,
+    cvv         integer     not null,
     expiry_date date        not null
 );
 
 CREATE TABLE IF NOT EXISTS Owns (
     cc_number   char(20)    primary key references Credit_cards,
-    cust_id     char(20)    not null,
+    cust_id     integer    not null,
     from_date   date        not null,
 
     foreign key (cust_id) references Customers(cust_id)
 );
 
 CREATE TABLE IF NOT EXISTS Course_packages (
-    package_id              char(20)    primary key,
-    name                    text        not null,
+    package_id              SERIAL    primary key,
+    package_name            text        not null,
     price                   integer     not null,
     num_free_registrations  integer     not null,
     sale_start_date         date        not null,
@@ -131,7 +152,7 @@ CREATE TABLE IF NOT EXISTS Course_packages (
 CREATE TABLE IF NOT EXISTS Buys (
     transaction_date            date,
     cc_number                   char(20),
-    package_id                  char(20),
+    package_id                  integer,
     num_remaining_registrations integer not null,
 
     primary key (transaction_date, cc_number, package_id),
@@ -140,14 +161,14 @@ CREATE TABLE IF NOT EXISTS Buys (
 );
 
 CREATE TABLE IF NOT EXISTS Courses (
-    course_id   char(20)    primary key,
+    course_id   SERIAL      primary key,
     title		text     	not null,
     duration	integer     not null,
     description	text
 );
 
 CREATE TABLE IF NOT EXISTS Offerings (
-	course_id					char(20),
+	course_id					integer,
     launch_date					date,
     start_date					date	    not null,
 	end_date					date	    not null,
@@ -174,8 +195,8 @@ CREATE TABLE IF NOT EXISTS Offerings (
 );
 
 CREATE TABLE IF NOT EXISTS Sessions (
-    sid   			char(20),
-	course_id		char(20),
+    sid   			SERIAL,
+	course_id		integer,
 	launch_date		date,
     session_date	date		not null,
     start_time		integer     not null,
@@ -194,8 +215,8 @@ CREATE TABLE IF NOT EXISTS Sessions (
 
 CREATE TABLE IF NOT EXISTS Registers (
     reg_date	date,
-	sid 		char(20),
-	course_id	char(20),
+	sid 		integer,
+	course_id	integer,
 	launch_date	date,
     cc_number 	char(20),
 	
@@ -206,12 +227,12 @@ CREATE TABLE IF NOT EXISTS Registers (
 
 CREATE TABLE IF NOT EXISTS Redeems (
     redeem_date			date,
-	sid 				char(20),
-	course_id			char(20),
+	sid 				integer,
+	course_id			integer,
 	launch_date			date,
     transaction_date	date,
     cc_number           char(20),
-    package_id          char(20),
+    package_id          integer,
 	
 	primary key (
 		redeem_date, sid, course_id, launch_date, transaction_date, cc_number, package_id
@@ -222,10 +243,10 @@ CREATE TABLE IF NOT EXISTS Redeems (
 
 CREATE TABLE IF NOT EXISTS Cancels (
     cancel_date		date,
-	sid 			char(20),
-	course_id		char(20),
+	sid 			integer,
+	course_id		integer,
 	launch_date		date,
-	cust_id 		char(20),
+	cust_id 		integer,
 	
 	primary key (
 		cancel_date, sid, course_id, launch_date, cust_id
