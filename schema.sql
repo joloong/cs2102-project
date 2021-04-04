@@ -162,95 +162,95 @@ CREATE TABLE IF NOT EXISTS Buys (
 
 CREATE TABLE IF NOT EXISTS Courses (
     course_id   SERIAL      primary key,
-    title		text     	not null,
-    duration	integer     not null,
+    title       text        not null,
+    duration    integer     not null,
     description	text
 );
 
 CREATE TABLE IF NOT EXISTS Offerings (
-	course_id					integer,
-    launch_date					date,
-    start_date					date	    not null,
-	end_date					date	    not null,
-	registration_deadline		date	    not null,
-    fees						integer     not null,
-    seating_capacity			integer     not null,
-    target_number_registrations	integer     not null,
+    course_id                   integer,
+    launch_date                 date,
+    start_date                  date        not null,
+    end_date                    date        not null,
+    registration_deadline       date        not null,
+    fees                        integer     not null,
+    seating_capacity            integer     not null,
+    target_number_registrations integer     not null,
 	
-	primary key	(launch_date, course_id),
-	foreign key	(course_id) references Courses,
+    primary key	(launch_date, course_id),
+    foreign key	(course_id) references Courses,
 	
-	constraint within_capacity check (
-		target_number_registrations <= seating_capacity
-	),
-	constraint end_lte_start_date check (
-		start_date <= end_date
-	),
-	constraint register_lte_launch_date check (
-		launch_date <= registration_deadline
-	),
-	constraint start_lte_launch_date check (
-		launch_date <= start_date
-	)
+    constraint within_capacity check (
+        target_number_registrations <= seating_capacity
+    ),
+    constraint end_lte_start_date check (
+        start_date <= end_date
+    ),
+    constraint register_lte_launch_date check (
+        launch_date <= registration_deadline
+    ),
+    constraint start_lte_launch_date check (
+        launch_date <= start_date
+    )
 );
 
 CREATE TABLE IF NOT EXISTS Sessions (
-    sid   			SERIAL,
-	course_id		integer,
-	launch_date		date,
-    session_date	date		not null,
-    start_time		integer     not null,
-	end_time		integer		not null, 
-	
-	primary key (sid, course_id, launch_date),
-	foreign key (launch_date, course_id) references Offerings,
-	
-	constraint end_lte_start_time check (
-		start_time <= end_time
-	),
-	constraint session_lte_launch_date check (
-		launch_date <= session_date
-	)
+    sid             SERIAL,
+    course_id       integer,
+    launch_date     date,
+    session_date    date        not null,
+    start_time      integer     not null,
+    end_time        integer     not null,
+
+    primary key (sid, course_id, launch_date),
+    foreign key (launch_date, course_id) references Offerings,
+
+    constraint end_lte_start_time check (
+        start_time <= end_time
+    ),
+    constraint session_lte_launch_date check (
+        launch_date <= session_date
+    )
 );
 
 CREATE TABLE IF NOT EXISTS Registers (
-    reg_date	date,
-	sid 		integer,
-	course_id	integer,
-	launch_date	date,
-    cc_number 	char(20),
-	
-	primary key (reg_date, sid, course_id, launch_date, cc_number),
-	foreign key (sid, course_id, launch_date) references Sessions,
-	foreign key (cc_number) references Owns
+    reg_date    date,
+    sid         integer,
+    course_id   integer,
+    launch_date date,
+    cc_number   char(20),
+
+    primary key (reg_date, sid, course_id, launch_date, cc_number),
+    foreign key (sid, course_id, launch_date) references Sessions,
+    foreign key (cc_number) references Owns
 );
 
 CREATE TABLE IF NOT EXISTS Redeems (
-    redeem_date			date,
-	sid 				integer,
-	course_id			integer,
-	launch_date			date,
-    transaction_date	date,
+    redeem_date         date,
+    sid                 integer,
+    course_id           integer,
+    launch_date         date,
+    transaction_date    date,
     cc_number           char(20),
     package_id          integer,
-	
-	primary key (
-		redeem_date, sid, course_id, launch_date, transaction_date, cc_number, package_id
-	),
-	foreign key (sid, course_id, launch_date) references Sessions,
-	foreign key (transaction_date, cc_number, package_id) references Buys
+
+    primary key (
+        redeem_date, sid, course_id, launch_date, transaction_date, cc_number, package_id
+    ),
+    foreign key (sid, course_id, launch_date) references Sessions,
+    foreign key (transaction_date, cc_number, package_id) references Buys
 );
 
 CREATE TABLE IF NOT EXISTS Cancels (
-    cancel_date		date,
-	sid 			integer,
-	course_id		integer,
-	launch_date		date,
-	cust_id 		integer,
-	
-	primary key (
-		cancel_date, sid, course_id, launch_date, cust_id
-	),
-	foreign key (sid, course_id, launch_date) references Sessions,
-	foreign key (cust_id) references Customers
+    cancel_date     date,
+    sid             integer,
+    course_id       integer,
+    launch_date     date,
+    cust_id         integer,
+
+    primary key (
+        cancel_date, sid, course_id, launch_date, cust_id
+    ),
+    foreign key (sid, course_id, launch_date) references Sessions,
+    foreign key (cust_id) references Customers
 );
