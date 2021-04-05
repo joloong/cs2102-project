@@ -207,6 +207,14 @@ CREATE TABLE IF NOT EXISTS Offerings (
     )
 );
 
+CREATE TABLE IF NOT EXISTS Rooms (
+    rid                 SERIAL,
+    seating_capacity    integer     not null,
+    location            text,
+
+    primary key (rid)
+);
+
 CREATE TABLE IF NOT EXISTS Sessions (
     sid             SERIAL,
     course_id       integer,
