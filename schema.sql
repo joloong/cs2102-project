@@ -69,8 +69,11 @@ CREATE TABLE IF NOT EXISTS Full_time_Emp (
 );
 
 CREATE TABLE IF NOT EXISTS Instructors (
-    eid             integer primary key references Employees
-                    on delete cascade
+    eid     integer     primary key references Employees
+                        on delete cascade,
+    name    text        not null,
+
+    foreign key (name) references Course_areas
 );
 
 CREATE TABLE IF NOT EXISTS Part_time_instructors (
@@ -92,6 +95,13 @@ CREATE TABLE IF NOT EXISTS Administrators (
 CREATE TABLE IF NOT EXISTS Managers (
     eid             integer primary key references Full_time_Emp
                     on delete cascade
+);
+
+CREATE TABLE IF NOT EXISTS Course_areas (
+    name    text primary key,
+    eid     integer not null,
+
+    foreign key (eid) references Managers
 );
 
 CREATE TABLE IF NOT EXISTS Pay_slips (
@@ -164,7 +174,10 @@ CREATE TABLE IF NOT EXISTS Courses (
     course_id   SERIAL      primary key,
     title       text        not null,
     duration    integer     not null,
-    description	text
+    name        text        not null,
+    description text,
+
+    foreign key (name) references Course_areas
 );
 
 CREATE TABLE IF NOT EXISTS Offerings (
