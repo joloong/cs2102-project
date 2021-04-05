@@ -214,6 +214,7 @@ CREATE TABLE IF NOT EXISTS Rooms (
 
     primary key (rid),
 
+
     constraint valid_max_seating_capacity check (
         seating_capacity > 0;
     )
@@ -226,9 +227,13 @@ CREATE TABLE IF NOT EXISTS Sessions (
     session_date    date        not null,
     start_time      integer     not null,
     end_time        integer     not null,
+    rid             SERIAL      not null,
+    eid             integer     not null,
 
     primary key (sid, course_id, launch_date),
     foreign key (launch_date, course_id) references Offerings,
+    foreign key (rid) references Rooms,
+    foreign key (eid) references Instructors,
 
     constraint end_lte_start_time check (
         start_time <= end_time
