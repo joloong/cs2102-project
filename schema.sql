@@ -189,9 +189,11 @@ CREATE TABLE IF NOT EXISTS Offerings (
     fees                        integer     not null,
     seating_capacity            integer     not null,
     target_number_registrations integer     not null,
+    eid                         integer     not null,
 	
     primary key	(launch_date, course_id),
     foreign key	(course_id) references Courses,
+    foreign key (eid) references Administrators,
 	
     constraint within_capacity check (
         target_number_registrations <= seating_capacity
