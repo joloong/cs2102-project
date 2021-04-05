@@ -210,9 +210,13 @@ CREATE TABLE IF NOT EXISTS Offerings (
 CREATE TABLE IF NOT EXISTS Rooms (
     rid                 SERIAL,
     seating_capacity    integer     not null,
-    location            text,
+    location            text        not null,
 
-    primary key (rid)
+    primary key (rid),
+
+    constraint valid_max_seating_capacity check (
+        seating_capacity > 0;
+    )
 );
 
 CREATE TABLE IF NOT EXISTS Sessions (
