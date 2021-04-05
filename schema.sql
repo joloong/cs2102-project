@@ -66,7 +66,19 @@ CREATE TABLE IF NOT EXISTS Full_time_Emp (
                     on delete cascade,
     monthly_rate    integer not null
 
-    constraint valid_monthly_rate check ( monthly_rate >= 0)
+    constraint valid_monthly_rate check (monthly_rate >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS Managers (
+    eid             integer primary key references Full_time_Emp
+                    on delete cascade
+);
+
+CREATE TABLE IF NOT EXISTS Course_areas (
+    name    text primary key,
+    eid     integer not null,
+
+    foreign key (eid) references Managers (eid)
 );
 
 CREATE TABLE IF NOT EXISTS Instructors (
@@ -74,7 +86,7 @@ CREATE TABLE IF NOT EXISTS Instructors (
                         on delete cascade,
     name    text        not null,
 
-    foreign key (name) references Course_areas
+    foreign key (name) references Course_areas (name)
 );
 
 CREATE TABLE IF NOT EXISTS Part_time_instructors (
@@ -91,18 +103,6 @@ CREATE TABLE IF NOT EXISTS Full_time_instructors (
 CREATE TABLE IF NOT EXISTS Administrators (
     eid             integer primary key references Full_time_Emp
                     on delete cascade
-);
-
-CREATE TABLE IF NOT EXISTS Managers (
-    eid             integer primary key references Full_time_Emp
-                    on delete cascade
-);
-
-CREATE TABLE IF NOT EXISTS Course_areas (
-    name    text primary key,
-    eid     integer not null,
-
-    foreign key (eid) references Managers
 );
 
 CREATE TABLE IF NOT EXISTS Pay_slips (
@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS Courses (
     name        text        not null,
     description text,
 
-    foreign key (name) references Course_areas
+    foreign key (name) references Course_areas (name)
 );
 
 CREATE TABLE IF NOT EXISTS Offerings (
@@ -219,7 +219,7 @@ CREATE TABLE IF NOT EXISTS Rooms (
 
 
     constraint valid_max_seating_capacity check (
-        seating_capacity > 0;
+        seating_capacity > 0
     )
 );
 
