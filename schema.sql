@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS Credit_cards (
 
 CREATE TABLE IF NOT EXISTS Owns (
     cc_number   char(20)    primary key references Credit_cards,
-    cust_id     integer    not null,
+    cust_id     integer     not null,
     from_date   date        not null,
 
     foreign key (cust_id) references Customers(cust_id)
