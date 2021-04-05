@@ -6,16 +6,17 @@
 -- Part_time_Emp, Full_time_Emp, Part_time_instructors, Full_time_instructors,
 -- Customers, Credit_cards, Course_packages,
 -- Courses, Sessions, Offerings,
---
+-- Rooms, Course_areas
+
 -- RELATIONS:
 -- Owns, Buys, Registers, Redeems, Cancels
 
 -- NOT DONE:
 -- ENTITIES:
--- Course_areas, Rooms
+--
 -- 
 -- RELATIONS
--- Manages, Handles, Specializes, In, Conducts
+--
 
 DROP TABLE IF EXISTS Part_time_Emp CASCADE;
 DROP TABLE IF EXISTS Employees CASCADE;
