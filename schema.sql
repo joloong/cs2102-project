@@ -290,21 +290,17 @@ CREATE TABLE IF NOT EXISTS Cancels (
 
 -- TRIGGERS & TRIGGER FUNCTIONS
 
-CREATE OR REPLACE FUNCTION disable_owns_from_date_update() RETURNS TRIGGER
+CREATE OR REPLACE FUNCTION disable_owns_update_delete() RETURNS TRIGGER
 AS $$
 BEGIN
-    IF (OLD.from_date != NEW.from_date) THEN
-        RAISE EXCEPTION 'Updating of from_date is not allowed.';
-        RETURN NULL;
-    END IF;
-
-    RETURN NEW;
+    RAISE EXCEPTION 'Updating or deleting of Owns is not allowed.';
+    RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER disable_owns_from_date_update_trigger
-BEFORE UPDATE ON Owns
-FOR EACH ROW EXECUTE FUNCTION disable_owns_from_date_update();
+CREATE TRIGGER disable_owns_update_delete_trigger
+BEFORE UPDATE OR DELETE ON Owns
+FOR EACH ROW EXECUTE FUNCTION disable_owns_update_delete();
 
 CREATE OR REPLACE FUNCTION credit_cards_owns_key_constraint() RETURNS TRIGGER
 AS $$
@@ -315,7 +311,7 @@ BEGIN
     FROM Owns
     WHERE Owns.cc_number = NEW.cc_number;
 
-    IF (credit_card_count = 1) THEN
+    IF (credit_card_count => 1) THEN
         RETURN NULL;
     END IF;
 
@@ -324,7 +320,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER credit_cards_owns_key_constraint_trigger
-BEFORE INSERT OR UPDATE ON Owns
+BEFORE INSERT Owns
 FOR EACH ROW EXECUTE FUNCTION credit_cards_own_key_constraint();
 
 CREATE OR REPLACE FUNCTION owns_participation_constraint() RETURNS TRIGGER
@@ -370,3 +366,26 @@ CREATE CONSTRAINT TRIGGER credit_cards_participation_constraint_trigger
 AFTER INSERT OR UPDATE ON Credit_cards
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION credit_cards_participation_constraint();
+
+CREATE OR REPLACE FUNCTION customers_participation_constraint() RETURNS TRIGGER
+AS $$
+DECLARE
+    customer_count INT;
+BEGIN
+    SELECT COUNT(*) INTO customer_count
+    FROM Owns
+    WHERE Owns.cust_id = NEW.cust_id;
+
+    IF (customer_count < 1) THEN
+        RAISE EXCEPTION 'Did not insert or update on Owns.';
+        RETURN NULL;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER customers_participation_constraint_trigger
+AFTER INSERT OR UPDATE ON Customers
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION customers_participation_constraint();
