@@ -331,7 +331,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER credit_cards_owns_key_constraint_trigger
 BEFORE INSERT ON Owns
-FOR EACH ROW EXECUTE FUNCTION credit_cards_own_key_constraint();
+FOR EACH ROW EXECUTE FUNCTION credit_cards_owns_key_constraint();
 
 CREATE OR REPLACE FUNCTION owns_participation_constraint() RETURNS TRIGGER
 AS $$
