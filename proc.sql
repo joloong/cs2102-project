@@ -70,7 +70,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 14. TODO: Convert to json?
+-- 14.
 CREATE OR REPLACE FUNCTION get_my_course_package (cust_id INT)
 RETURNS JSON
 AS $$
@@ -80,19 +80,34 @@ DECLARE
 BEGIN
     SELECT * INTO package_row
     FROM Course_packages cp natural join Buys b natural join Owns o
-    WHERE o.cust_id = cust_id
+    WHERE o.cust_id = get_my_course_package.cust_id
     ORDER BY b.transaction_date desc
     LIMIT 1;
     
+    WITH Sess AS (
+        SELECT co.title, s.session_date, s.start_time
+        FROM Redeems r natural join Sessions s natural join Courses co
+        WHERE package_row.transaction_date = r.transaction_date AND
+            package_row.cc_number = r.cc_number AND
+            package_row.package_id = r.package_id
+        ORDER BY s.session_date asc, s.start_time asc
+    )
+    SELECT json_agg(Sess) INTO session_json
+    FROM Sess;
 
-    SELECT co.title, s.session_date, s.start_time
-    FROM Redeems r natural join Sessions s natural join Courses co
-    WHERE package_row.transaction_date = r.transaction_date AND
-        package_row.cc_number = r.cc_number AND
-        package_row.package_id = r.package_id
-    ORDER BY s.session_date asc, s.start_time asc;
+    RETURN json_build_object(
+		'package_name', package_row.package_name,
+        'transaction_date', package_row.transaction_date,
+        'price', package_row.price,
+        'num_free_registrations', package_row.num_free_registrations,
+        'num_remaining_registrations', package_row.num_remaining_registrations,
+        'redeemed_sessions_information', session_json
+	);
 END;
 $$ LANGUAGE plpgsql;
 
 -- For Testing
 -- CALL add_customer('Joel', 'CCK', '82345678', 'joel@joel.com', '1234123412341234', 123, '2021-01-01');
+-- CALL add_course_package('TESTING', 10, 5, '2021-01-01', '2021-05-05');
+-- CALL buy_course_package(1, 1);
+-- SELECT get_my_course_package(1);
