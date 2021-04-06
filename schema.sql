@@ -90,13 +90,12 @@ CREATE TABLE IF NOT EXISTS Instructors (
 );
 
 CREATE TABLE IF NOT EXISTS Part_time_instructors (
-    -- Part_time_employees must be Part_time_instructors
-    eid             integer primary key references Part_time_Emp
+    eid             integer primary key references Part_time_Emp references Instructors
                     on delete cascade           
 );
 
 CREATE TABLE IF NOT EXISTS Full_time_instructors (
-    eid             integer primary key references Full_time_Emp
+    eid             integer primary key references Full_time_Emp references Instructors
                     on delete cascade
 );
 
