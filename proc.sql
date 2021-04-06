@@ -57,16 +57,40 @@ DECLARE
 BEGIN
     SELECT cc_number INTO cust_cc_number
     FROM Owns
-    WHERE cust_id = cust_id
+    WHERE Owns.cust_id = buy_course_package.cust_id
     ORDER BY from_date desc
     LIMIT 1;
 
     SELECT num_free_registrations INTO num_remaining_registrations
     FROM Course_packages
-    WHERE package_id = package_id;
+    WHERE Course_packages.package_id = buy_course_package.package_id;
 
     INSERT INTO Buys (transaction_date, cc_number, package_id, num_remaining_registrations)
     VALUES (NOW(), cust_cc_number, package_id, num_remaining_registrations);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 14. TODO: Convert to json?
+CREATE OR REPLACE FUNCTION get_my_course_package (cust_id INT)
+RETURNS JSON
+AS $$
+DECLARE
+    package_row record;
+    session_json json;
+BEGIN
+    SELECT * INTO package_row
+    FROM Course_packages cp natural join Buys b natural join Owns o
+    WHERE o.cust_id = cust_id
+    ORDER BY b.transaction_date desc
+    LIMIT 1;
+    
+
+    SELECT co.title, s.session_date, s.start_time
+    FROM Redeems r natural join Sessions s natural join Courses co
+    WHERE package_row.transaction_date = r.transaction_date AND
+        package_row.cc_number = r.cc_number AND
+        package_row.package_id = r.package_id
+    ORDER BY s.session_date asc, s.start_time asc;
 END;
 $$ LANGUAGE plpgsql;
 
