@@ -30,5 +30,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 11.
+CREATE OR REPLACE PROCEDURE add_course_package (package_name TEXT, price INT, num_free_registrations INT, sale_start_date DATE, sale_end_date DATE)
+AS $$
+BEGIN
+    INSERT INTO Course_packages (package_name, price, num_free_registrations, sale_start_date, sale_end_date)
+    VALUES (package_name, price, num_free_registrations, sale_start_date, sale_end_date);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 12.
+CREATE OR REPLACE FUNCTION get_available_course_packages ()
+RETURNS TABLE (package_name TEXT, num_free_registrations INT, sale_end_date DATE, price INT)
+AS $$
+    SELECT package_name, num_free_registrations, sale_end_date, price
+    FROM Course_packages
+    WHERE sale_end_date >= NOW();
+$$ LANGUAGE sql;
+
 -- For Testing
 -- CALL add_customer('Joel', 'CCK', '82345678', 'joel@joel.com', '1234123412341234', 123, '2021-01-01');

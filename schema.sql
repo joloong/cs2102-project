@@ -148,13 +148,19 @@ CREATE TABLE IF NOT EXISTS Owns (
 );
 
 CREATE TABLE IF NOT EXISTS Course_packages (
-    package_id              SERIAL    primary key,
+    package_id              SERIAL      primary key,
     package_name            text        not null,
     price                   integer     not null,
     num_free_registrations  integer     not null,
     sale_start_date         date        not null,
     sale_end_date           date        not null,
 
+    constraint min_price check (
+        price >= 0
+    ),
+    constraint min_num_free_registrations check (
+        num_free_registrations >= 0
+    ),
     constraint start_lte_end_date check (
         sale_start_date <= sale_end_date
     )
@@ -168,7 +174,11 @@ CREATE TABLE IF NOT EXISTS Buys (
 
     primary key (transaction_date, cc_number, package_id),
     foreign key (cc_number) references Owns(cc_number),
-    foreign key (package_id) references Course_packages(package_id)
+    foreign key (package_id) references Course_packages(package_id),
+
+    constraint min_num_remaining_registrations check (
+        num_remaining_registrations >= 0
+    )
 );
 
 CREATE TABLE IF NOT EXISTS Courses (
@@ -311,7 +321,7 @@ BEGIN
     FROM Owns
     WHERE Owns.cc_number = NEW.cc_number;
 
-    IF (credit_card_count => 1) THEN
+    IF (credit_card_count >= 1) THEN
         RETURN NULL;
     END IF;
 
@@ -320,7 +330,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER credit_cards_owns_key_constraint_trigger
-BEFORE INSERT Owns
+BEFORE INSERT ON Owns
 FOR EACH ROW EXECUTE FUNCTION credit_cards_own_key_constraint();
 
 CREATE OR REPLACE FUNCTION owns_participation_constraint() RETURNS TRIGGER
