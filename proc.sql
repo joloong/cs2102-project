@@ -48,5 +48,27 @@ AS $$
     WHERE sale_end_date >= NOW();
 $$ LANGUAGE sql;
 
+-- 13. TODO: Each customer can have at most one active or partially active package.
+CREATE OR REPLACE PROCEDURE buy_course_package (cust_id INT, package_id INT)
+AS $$
+DECLARE 
+    cust_cc_number char(20);
+    num_remaining_registrations INT;
+BEGIN
+    SELECT cc_number INTO cust_cc_number
+    FROM Owns
+    WHERE cust_id = cust_id
+    ORDER BY from_date desc
+    LIMIT 1;
+
+    SELECT num_free_registrations INTO num_remaining_registrations
+    FROM Course_packages
+    WHERE package_id = package_id;
+
+    INSERT INTO Buys (transaction_date, cc_number, package_id, num_remaining_registrations)
+    VALUES (NOW(), cust_cc_number, package_id, num_remaining_registrations);
+END;
+$$ LANGUAGE plpgsql;
+
 -- For Testing
 -- CALL add_customer('Joel', 'CCK', '82345678', 'joel@joel.com', '1234123412341234', 123, '2021-01-01');
