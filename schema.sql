@@ -39,6 +39,7 @@ DROP TABLE IF EXISTS Sessions CASCADE;
 DROP TABLE IF EXISTS Registers CASCADE;
 DROP TABLE IF EXISTS Redeems CASCADE;
 DROP TABLE IF EXISTS Cancels CASCADE;
+DROP TABLE IF EXISTS Specializes CASCADE;
 
 CREATE TABLE IF NOT EXISTS Employees (
     eid             SERIAL primary key,
@@ -84,10 +85,10 @@ CREATE TABLE IF NOT EXISTS Course_areas (
 
 CREATE TABLE IF NOT EXISTS Instructors (
     eid     integer     primary key references Employees
-                        on delete cascade,
-    area    text        not null,
+                        on delete cascade
+    -- area    text        not null,
 
-    foreign key (area) references Course_areas (area)
+    -- foreign key (area) references Course_areas (area)
 );
 
 CREATE TABLE IF NOT EXISTS Part_time_instructors (
@@ -98,6 +99,12 @@ CREATE TABLE IF NOT EXISTS Part_time_instructors (
 CREATE TABLE IF NOT EXISTS Full_time_instructors (
     eid             integer primary key references Full_time_Emp references Instructors
                     on delete cascade
+);
+
+CREATE TABLE IF NOT EXISTS Specializes (
+    eid             integer references Instructors,
+    area            text references Course_areas,
+    primary key (eid, area)
 );
 
 CREATE TABLE IF NOT EXISTS Administrators (
