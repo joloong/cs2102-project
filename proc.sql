@@ -100,8 +100,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP FUNCTION IF EXISTS find_instructors (INTEGER, DATE, INTEGER);
-
 -- 3.
 
 CREATE OR REPLACE PROCEDURE add_customer (cust_name TEXT, address TEXT, phone TEXT, email TEXT, cc_number char(20), cvv INT, expiry_date DATE) AS $$
@@ -138,8 +136,11 @@ CREATE OR REPLACE PROCEDURE add_course (title TEXT, description TEXT, area TEXT,
 BEGIN
     INSERT INTO Courses (title, duration, area, description)
     VALUES (title, duration, area, description);
+END;
+$$ LANGUAGE plpgsql;
 
 -- 6.
+
 CREATE OR REPLACE FUNCTION find_instructors (_course_identifier INT, _session_date DATE, _session_start_hour INT)
 RETURNS TABLE (eid INT, name text)
 AS $$
@@ -162,7 +163,7 @@ BEGIN
     with specialist_employees as (
         /* Instructors that specialize in the course area */
         SELECT R1.eid
-        FROM Instructors R1
+        FROM (Instructors NATURAL JOIN Specializes) R1
         WHERE R1.area = session_area
         /* drop Instructors that would exceed the max of 30 hours per month by taking up the session */
         EXCEPT

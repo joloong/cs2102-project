@@ -9,6 +9,7 @@ DELETE FROM Part_time_instructors;
 DELETE FROM Full_time_instructors;
 DELETE FROM Administrators;
 DELETE FROM Course_areas;
+DELETE FROM Specializes;
 DELETE FROM Managers;
 DELETE FROM Pay_slips;
 DELETE FROM Customers;
@@ -22,7 +23,6 @@ DELETE FROM Sessions;
 DELETE FROM Registers;
 DELETE FROM Redeems;
 DELETE FROM Cancels;
-DELETE FROM Specializes;
 
 /*
 INSERT INTO Credit_cards (cc_number, cvv, expiry_date) VALUES
@@ -79,14 +79,6 @@ INSERT INTO Course_areas (area, eid) VALUES
 ('parallel computing', 8),
 ('project management', 9),
 ('theoretical physics', 10);
-
-INSERT INTO Specializes (eid, area) VALUES
-(1, 'database systems'),
-(2, 'parallel computing'),
-(3, 'parallel computing'),
-(4, 'database systems'),
-(5, 'project management'),
-(6, 'theoretical physics');
 
 INSERT INTO Instructors (eid) VALUES
 (1),
