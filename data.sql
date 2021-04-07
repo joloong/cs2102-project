@@ -93,3 +93,5 @@ INSERT INTO Part_time_instructors (eid) VALUES
 INSERT INTO Full_time_instructors (eid) VALUES
 (5),
 (6);
+
+ALTER SEQUENCE Employees_eid_seq RESTART WITH 11;
