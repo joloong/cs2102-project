@@ -106,6 +106,36 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 17. TODO: Implement triggers to check valid
+CREATE OR REPLACE PROCEDURE register_session (cust_id INT, course_id INT, launch_date date, sid INT, payment_method TEXT)
+AS $$
+DECLARE 
+    cust_cc_number char(20);
+    cust_transaction_date date;
+    cust_package_id INT;
+BEGIN
+    SELECT cc_number INTO cust_cc_number
+    FROM Owns
+    WHERE Owns.cust_id = register_session.cust_id
+    ORDER BY from_date desc
+    LIMIT 1;
+
+    IF payment_method = 'credit_card' THEN
+        INSERT INTO Registers (reg_date, sid, course_id, launch_date, cc_number)
+	    VALUES (NOW(), sid, course_id, launch_date, cust_cc_number);
+    ELSE -- redeems
+        SELECT transaction_date, package_id INTO cust_transaction_date, cust_package_id
+        FROM Buys
+        WHERE Buys.cc_number = cust_cc_number
+        ORDER BY Buys.transaction_date desc
+        LIMIT 1;
+
+        INSERT INTO Redeems (redeem_date, sid, course_id, launch_date, transaction_date, cc_number, package_id)
+	    VALUES (NOW(), sid, course_id, launch_date, cust_transaction_date, cust_cc_number, cust_package_id);
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 22.
 CREATE OR REPLACE PROCEDURE update_room (course_id INT, launch_date date, sid INT, new_rid INT)
 AS $$
