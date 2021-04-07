@@ -106,23 +106,24 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 22. TODO: Check start_time too
+-- 22.
 CREATE OR REPLACE PROCEDURE update_room (course_id INT, launch_date date, sid INT, new_rid INT)
 AS $$
 DECLARE 
     session_start_date date;
+    session_start_time INT;
     num_registrations INT;
     num_redeems INT;
     num_cancels INT;
     new_seating_capacity INT;
 BEGIN
-    SELECT sessions_date INTO session_start_date
+    SELECT session_date, start_time INTO session_start_date, session_start_time
     FROM Sessions
     WHERE Sessions.course_id = update_room.course_id AND
         Sessions.launch_date = update_room.launch_date AND
         Sessions.sid = update_room.sid;
 
-    IF session_start_date < NOW() THEN
+    IF session_start_date < NOW() AND EXTRACT(HOUR from current_time) < session_start_time THEN
         SELECT COUNT(*) INTO num_registrations
         FROM Registers
         WHERE Registers.course_id = update_room.course_id AND
