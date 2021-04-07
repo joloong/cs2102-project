@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS Managers (
 );
 
 CREATE TABLE IF NOT EXISTS Course_areas (
-    name    text primary key,
+    area    text primary key,
     eid     integer not null,
 
     foreign key (eid) references Managers (eid)
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS Instructors (
                         on delete cascade,
     name    text        not null,
 
-    foreign key (name) references Course_areas (name)
+    foreign key (area) references Course_areas (area)
 );
 
 CREATE TABLE IF NOT EXISTS Part_time_instructors (
@@ -184,10 +184,10 @@ CREATE TABLE IF NOT EXISTS Courses (
     course_id   SERIAL      primary key,
     title       text        not null,
     duration    integer     not null,
-    name        text        not null,
+    area        text        not null,
     description text,
 
-    foreign key (name) references Course_areas (name)
+    foreign key (area) references Course_areas (area)
 );
 
 CREATE TABLE IF NOT EXISTS Offerings (
