@@ -1,12 +1,12 @@
 -- CS2102 Project Team 41 proc.sql
- -- 1.
- -- TODO: IF not administrator/manager/instructor
- -- Assumptions: Course_areas should exist in the database
-
-CREATE OR REPLACE PROCEDURE add_employee (name TEXT, address TEXT, phone TEXT, email TEXT, monthly_rate INT, hourly_rate INT, join_date DATE, employee_category TEXT, course_areas TEXT[]) AS $$
+-- 1.
+-- TODO: IF not administrator/manager/instructor
+-- Assumptions: Course_areas should exist in the database
+CREATE OR REPLACE PROCEDURE add_employee (name TEXT, address TEXT, phone TEXT, email TEXT, monthly_rate INT, hourly_rate INT, join_date DATE, employee_category TEXT, course_areas TEXT[])
+AS $$
 DECLARE
     new_eid INT;
-	course_area TEXT;
+    course_area TEXT;
 BEGIN
     -- INPUT VALIDATION
     IF monthly_rate IS NULL AND hourly_rate IS NULL THEN
@@ -89,8 +89,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 2.
-
-CREATE OR REPLACE PROCEDURE remove_employee (eid INTEGER, depart_date DATE) AS $$
+CREATE OR REPLACE PROCEDURE remove_employee (eid INTEGER, depart_date DATE) 
+AS $$
 DECLARE
     new_cust_id INT;
 BEGIN
@@ -101,13 +101,13 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 3.
-
-CREATE OR REPLACE PROCEDURE add_customer (cust_name TEXT, address TEXT, phone TEXT, email TEXT, cc_number char(20), cvv INT, expiry_date DATE) AS $$
+CREATE OR REPLACE PROCEDURE add_customer (cust_name TEXT, address TEXT, phone TEXT, email TEXT, cc_number char(20), cvv INT, expiry_date DATE)
+AS $$
 DECLARE
     new_cust_id INT;
 BEGIN
-	INSERT INTO Customers (cust_name, address, phone, email)
-	VALUES (cust_name, address, phone, email)
+    INSERT INTO Customers (cust_name, address, phone, email)
+    VALUES (cust_name, address, phone, email)
     RETURNING cust_id INTO new_cust_id;
 
     INSERT INTO Credit_cards (cc_number, cvv, expiry_date)
@@ -119,8 +119,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 4.
-
-CREATE OR REPLACE PROCEDURE update_credit_card (cust_id INT, cc_number char(20), cvv INT, expiry_date DATE) AS $$
+CREATE OR REPLACE PROCEDURE update_credit_card (cust_id INT, cc_number char(20), cvv INT, expiry_date DATE)
+AS $$
 BEGIN
     INSERT INTO Credit_cards (cc_number, cvv, expiry_date)
     VALUES (cc_number, cvv, expiry_date);
@@ -131,8 +131,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 5.
-
-CREATE OR REPLACE PROCEDURE add_course (title TEXT, description TEXT, area TEXT, duration INT) AS $$
+CREATE OR REPLACE PROCEDURE add_course (title TEXT, description TEXT, area TEXT, duration INT)
+AS $$
 BEGIN
     INSERT INTO Courses (title, duration, area, description)
     VALUES (title, duration, area, description);
@@ -140,7 +140,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 6.
-
 CREATE OR REPLACE FUNCTION find_instructors (_course_identifier INT, _session_date DATE, _session_start_hour INT)
 RETURNS TABLE (eid INT, name text)
 AS $$
@@ -207,8 +206,8 @@ The inputs to the routine include the following: course offering identifier, cou
 */
 
 -- 11.
-
-CREATE OR REPLACE PROCEDURE add_course_package (package_name TEXT, price INT, num_free_registrations INT, sale_start_date DATE, sale_end_date DATE) AS $$
+CREATE OR REPLACE PROCEDURE add_course_package (package_name TEXT, price INT, num_free_registrations INT, sale_start_date DATE, sale_end_date DATE)
+AS $$
 BEGIN
     INSERT INTO Course_packages (package_name, price, num_free_registrations, sale_start_date, sale_end_date)
     VALUES (package_name, price, num_free_registrations, sale_start_date, sale_end_date);
@@ -216,16 +215,17 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 12.
-
-CREATE OR REPLACE FUNCTION get_available_course_packages () RETURNS TABLE (package_name TEXT, num_free_registrations INT, sale_end_date DATE, price INT) AS $$
+CREATE OR REPLACE FUNCTION get_available_course_packages ()
+RETURNS TABLE (package_name TEXT, num_free_registrations INT, sale_end_date DATE, price INT)
+AS $$
     SELECT package_name, num_free_registrations, sale_end_date, price
     FROM Course_packages
     WHERE sale_end_date >= NOW();
 $$ LANGUAGE sql;
 
 -- 13. TODO: Each customer can have at most one active or partially active package.
-
-CREATE OR REPLACE PROCEDURE buy_course_package (cust_id INT, package_id INT) AS $$
+CREATE OR REPLACE PROCEDURE buy_course_package (cust_id INT, package_id INT)
+AS $$
 DECLARE
     cust_cc_number char(20);
     num_remaining_registrations INT;
@@ -246,8 +246,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 14.
-
-CREATE OR REPLACE FUNCTION get_my_course_package (cust_id INT) RETURNS JSON AS $$
+CREATE OR REPLACE FUNCTION get_my_course_package (cust_id INT)
+RETURNS JSON
+AS $$
 DECLARE
     package_row record;
     session_json json;
@@ -270,7 +271,7 @@ BEGIN
     FROM Sess;
 
     RETURN json_build_object(
-		'package_name', package_row.package_name,
+        'package_name', package_row.package_name,
         'transaction_date', package_row.transaction_date,
         'price', package_row.price,
         'num_free_registrations', package_row.num_free_registrations,
@@ -281,8 +282,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 17. TODO: Implement triggers to check valid
-
-CREATE OR REPLACE PROCEDURE register_session (cust_id INT, course_id INT, launch_date date, sid INT, payment_method TEXT) AS $$
+CREATE OR REPLACE PROCEDURE register_session (cust_id INT, course_id INT, launch_date date, sid INT, payment_method TEXT)
+AS $$
 DECLARE
     cust_cc_number char(20);
     cust_transaction_date date;
@@ -296,7 +297,7 @@ BEGIN
 
     IF payment_method = 'credit_card' THEN
         INSERT INTO Registers (reg_date, sid, course_id, launch_date, cc_number)
-	    VALUES (NOW(), sid, course_id, launch_date, cust_cc_number);
+        VALUES (NOW(), sid, course_id, launch_date, cust_cc_number);
     ELSE -- redeems
         SELECT transaction_date, package_id INTO cust_transaction_date, cust_package_id
         FROM Buys
@@ -305,7 +306,7 @@ BEGIN
         LIMIT 1;
 
         INSERT INTO Redeems (redeem_date, sid, course_id, launch_date, transaction_date, cc_number, package_id)
-	    VALUES (NOW(), sid, course_id, launch_date, cust_transaction_date, cust_cc_number, cust_package_id);
+        VALUES (NOW(), sid, course_id, launch_date, cust_transaction_date, cust_cc_number, cust_package_id);
     END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -348,8 +349,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 22.
-
-CREATE OR REPLACE PROCEDURE update_room (course_id INT, launch_date date, sid INT, new_rid INT) AS $$
+CREATE OR REPLACE PROCEDURE update_room (course_id INT, launch_date date, sid INT, new_rid INT)
+AS $$
 DECLARE
     session_start_date date;
     session_start_time INT;
