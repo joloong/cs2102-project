@@ -1,5 +1,6 @@
 -- CS2102 Project Team 41 data.sql
 
+DELETE FROM Rooms;
 DELETE FROM Employees;
 DELETE FROM Part_time_Emp;
 DELETE FROM Full_time_Emp;
@@ -49,7 +50,8 @@ INSERT INTO Employees (eid, name, phone, email, join_date, address, depart_date)
 (7, 'Gary Manager', '91234554', 'gary@cs2102.com', '2019-03-25', 'The Interlace', null),
 (8, 'Hemanshu Manager', '97126111', 'hemanshu@cs2102.com', '2012-04-27', 'Sentosa Cove', null),
 (9, 'Firzan Manager', '91234114', 'firzan@cs2102.com', '2019-03-25', 'The Interlace', null),
-(10, 'Hodor Manager', '97126001', 'hodor@cs2102.com', '2012-04-27', 'Sentosa Cove', null);
+(10, 'Hodor Manager', '97126001', 'hodor@cs2102.com', '2012-04-27', 'Sentosa Cove', null),
+(11, 'Ivan Administrator', '97126666', 'ivan@cs2102.com', '2012-04-27', 'Sentosa Cove', null);
 
 INSERT INTO Full_time_Emp (eid, monthly_rate) VALUES
 (5, 4000),
@@ -57,7 +59,8 @@ INSERT INTO Full_time_Emp (eid, monthly_rate) VALUES
 (7, 4000),
 (8, 6000),
 (9, 6900),
-(10, 7000);
+(10, 7000),
+(11, 4000);
 
 INSERT INTO Part_time_Emp (eid, hourly_rate) VALUES
 (1, 69),
@@ -76,6 +79,14 @@ INSERT INTO Course_areas (area, eid) VALUES
 ('parallel computing', 8),
 ('project management', 9),
 ('theoretical physics', 10);
+
+INSERT INTO Specializes (eid, area) VALUES
+(1, 'database systems'),
+(2, 'parallel computing'),
+(3, 'parallel computing'),
+(4, 'database systems'),
+(5, 'project management'),
+(6, 'theoretical physics');
 
 INSERT INTO Instructors (eid) VALUES
 (1),
@@ -103,4 +114,20 @@ INSERT INTO Full_time_instructors (eid) VALUES
 (5),
 (6);
 
-ALTER SEQUENCE Employees_eid_seq RESTART WITH 11;
+INSERT INTO Administrators (eid) VALUES
+(11);
+
+INSERT INTO Courses (course_id, title, duration, area) VALUES
+(1, 'CS2102: Database Systems', 2, 'database systems'),
+(2, 'CS3223: Database Systems Implementation', 2, 'database systems');
+
+INSERT INTO Offerings (course_id, launch_date, start_date, end_date, registration_deadline, fees, seating_capacity, target_number_registrations, eid) VALUES
+(1, '2021-07-10', '2021-08-10', '2021-11-11', '2021-07-25', 1000, 100, 100, 11);
+
+INSERT INTO Rooms (rid, seating_capacity, location) VALUES
+(1, 100, 'LT15');
+
+INSERT INTO Sessions (sid, course_id, launch_date, session_date, start_time, end_time, rid, eid) VALUES
+(1, 1, '2021-07-10', '2021-08-10', 2, 4, 1, 4);
+
+ALTER SEQUENCE Employees_eid_seq RESTART WITH 12;

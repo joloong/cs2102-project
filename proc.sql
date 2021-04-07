@@ -100,6 +100,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP FUNCTION IF EXISTS find_instructors (INTEGER, DATE, INTEGER);
+
 -- 3.
 
 CREATE OR REPLACE PROCEDURE add_customer (cust_name TEXT, address TEXT, phone TEXT, email TEXT, cc_number char(20), cvv INT, expiry_date DATE) AS $$
@@ -136,6 +138,61 @@ CREATE OR REPLACE PROCEDURE add_course (title TEXT, description TEXT, area TEXT,
 BEGIN
     INSERT INTO Courses (title, duration, area, description)
     VALUES (title, duration, area, description);
+
+-- 6.
+CREATE OR REPLACE FUNCTION find_instructors (_course_identifier INT, _session_date DATE, _session_start_hour INT)
+RETURNS TABLE (eid INT, name text)
+AS $$
+DECLARE 
+    session_duration INT;
+    session_area TEXT;
+    session_end_hour INT;
+    session_month DOUBLE PRECISION;
+BEGIN
+    SELECT duration, area into session_duration, session_area
+    FROM Courses
+    WHERE Courses.course_id = _course_identifier;
+
+    -- As a session either ends before 12pm or starts after 2pm, we do not need to do modulo on the hours.
+    session_end_hour := _session_start_hour + session_duration;
+
+    session_month := extract(month from _session_date);
+
+    RETURN QUERY
+    with specialist_employees as (
+        /* Instructors that specialize in the course area */
+        SELECT R1.eid
+        FROM Instructors R1
+        WHERE R1.area = session_area
+        /* drop Instructors that would exceed the max of 30 hours per month by taking up the session */
+        EXCEPT
+        SELECT R1.eid
+        FROM Part_time_instructors R1
+        WHERE (session_duration + (
+            SELECT SUM(duration)
+            FROM (Courses NATURAL JOIN Sessions) R2
+            WHERE R1.eid = R2.eid and (session_month = extract(month from R2.session_date))
+        ) > 30)
+    ), instructor_names AS (
+        SELECT R1.eid, R1.name
+        FROM (specialist_employees NATURAL JOIN Employees) R1
+    )
+    /* remaining Instructors that do not have any scheduling restrictions with this session */
+    SELECT DISTINCT R1.eid, R1.name
+    FROM instructor_names R1
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM (instructor_names NATURAL LEFT JOIN Sessions) R2
+        WHERE R1.eid = R2.eid and _session_date = R2.session_date and (
+            -- both sessions need to be in the morning/afternoon to have a chance of overlapping
+            (session_end_hour <= 12 and R2.end_time <= 12 or _session_start_hour >= 2 and R2.start_time >= 2) and (
+                ABS(R2.start_time - _session_start_hour) <= 1 or
+                ABS(R2.end_time - _session_start_hour) <= 1 or
+                ABS(R2.start_time - session_end_hour) <= 1 or
+                ABS(R2.end_time - session_end_hour) <= 1
+            )
+        )
+    );
 END;
 $$ LANGUAGE plpgsql;
 
