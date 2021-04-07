@@ -243,6 +243,43 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 18.
+CREATE OR REPLACE FUNCTION get_my_registrations (cust_id INT) 
+RETURNS TABLE (title TEXT, fees INT, session_date DATE, start_time INT, duration INT)
+AS $$
+DECLARE
+    cust_cc_number char(20);
+BEGIN
+    SELECT cc_number INTO cust_cc_number
+    FROM Owns
+    WHERE Owns.cust_id = get_my_registrations.cust_id
+    ORDER BY from_date desc
+    LIMIT 1;
+
+    RETURN query
+    WITH RegisteredSessions AS (
+        SELECT sid, course_id, launch_date
+        FROM Registers
+        WHERE Registers.cc_number = cust_cc_number
+        UNION
+        SELECT sid, course_id, launch_date
+        FROM Redeems
+        WHERE Redeems.cc_number = cust_cc_number
+        EXCEPT
+        SELECT sid, course_id, launch_date
+        FROM Cancels
+        WHERE Cancels.cust_id = get_my_registrations.cust_id
+    )
+    SELECT RSC.title, O.fees, RSC.session_date, RSC.start_time, RSC.duration
+    FROM (RegisteredSessions NATURAL JOIN Sessions NATURAL JOIN Courses) RSC
+        JOIN Offerings O
+        ON RSC.launch_date = O.launch_date AND
+            RSC.course_id = O.course_id
+    WHERE RSC.session_date <= NOW() AND 
+        EXTRACT(HOUR from current_time) < RSC.end_time;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 22.
 
 CREATE OR REPLACE PROCEDURE update_room (course_id INT, launch_date date, sid INT, new_rid INT) AS $$
@@ -260,7 +297,7 @@ BEGIN
         Sessions.launch_date = update_room.launch_date AND
         Sessions.sid = update_room.sid;
 
-    IF session_start_date < NOW() AND EXTRACT(HOUR from current_time) < session_start_time THEN
+    IF session_start_date <= NOW() AND EXTRACT(HOUR from current_time) < session_start_time THEN
         SELECT COUNT(*) INTO num_registrations
         FROM Registers
         WHERE Registers.course_id = update_room.course_id AND
