@@ -30,6 +30,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 5.
+CREATE OR REPLACE PROCEDURE add_course (title TEXT, description TEXT, area TEXT, duration INT)
+AS $$
+BEGIN
+    INSERT INTO Courses (title, duration, area, description)
+    VALUES (title, duration, area, description);
+END;
+$$ LANGUAGE plpgsql;
+
 -- 11.
 CREATE OR REPLACE PROCEDURE add_course_package (package_name TEXT, price INT, num_free_registrations INT, sale_start_date DATE, sale_end_date DATE)
 AS $$
