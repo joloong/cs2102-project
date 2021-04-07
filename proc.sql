@@ -1,4 +1,80 @@
 -- CS2102 Project Team 41 proc.sql
+ -- 1.
+ -- TODO: IF not administrator/manager/instructor
+ -- Assumptions: Course_areas should exist in the database
+CREATE OR REPLACE PROCEDURE add_employee (name TEXT, address TEXT, phone TEXT, email TEXT, monthly_rate INT, hourly_rate INT, join_date DATE, employee_category TEXT, course_areas TEXT[]) AS $$
+DECLARE
+    new_eid INT;
+	course_area TEXT;
+BEGIN
+    -- INPUT VALIDATION
+    IF monthly_rate IS NULL AND hourly_rate IS NULL THEN
+        RAISE EXCEPTION 'Salary information not supplied.';
+    END IF;
+    IF monthly_rate IS NOT NULL AND hourly_rate IS NOT NULL THEN
+        RAISE EXCEPTION 'Only full-time or part-time salary information is to be supplied.';
+    END IF;
+
+    IF employee_category = 'administrator' AND array_length(course_areas, 1) > 0 THEN
+        RAISE EXCEPTION 'Set of course areas should be empty for administrators';
+    END IF;
+    IF employee_category = 'instructor' AND array_length(course_areas, 1) IS NULL THEN
+        RAISE EXCEPTION 'Set of course areas should not be empty for instructors specialization areas.';
+    END IF;
+    IF employee_category = 'manager' AND array_length(course_areas, 1) IS NULL THEN
+        RAISE EXCEPTION 'Set of course areas should not be empty for managers managed areas.';
+    END IF;
+
+    -- MAIN OPERATION
+    -- Insert - General
+    INSERT INTO Employees (name, phone, email, join_date, address)
+    VALUES (name, phone, email, join_date, address)
+    RETURNING eid INTO new_eid;
+
+    -- Insert - Specific
+    IF monthly_rate IS NULL AND hourly_rate IS NOT NULL THEN
+        IF employee_category = 'administrator' THEN
+            RAISE EXCEPTION 'Administrators cannot be part time employeees';
+        END IF;
+        IF employee_category = 'manager' THEN
+            RAISE EXCEPTION 'Managers cannot be part time employees';
+        END IF;
+        IF employee_category = 'instructor' THEN
+            INSERT INTO Part_time_instructors (eid)
+            VALUES (new_eid);
+        END IF;
+
+        INSERT INTO Part_time_Emp (eid, hourly_rate)
+        VALUES (new_eid, hourly_rate);
+    END IF;
+
+    IF monthly_rate IS NOT NULL AND hourly_rate IS NULL THEN
+        INSERT INTO Full_time_Emp (eid, monthly_rate)
+        VALUES (new_eid, monthly_rate);
+
+        IF employee_category = 'administrator' THEN
+            INSERT INTO Administrators (eid)
+            VALUES (new_eid);
+        END IF;
+        IF employee_category = 'manager' THEN
+            INSERT INTO Managers (eid)
+            VALUES (new_eid);
+        END IF;
+        IF employee_category = 'instructor' THEN
+            INSERT INTO Full_time_instructors (eid)
+            VALUES (new_eid);
+        END IF;
+    END IF;
+
+    IF employee_category = 'instructor' THEN
+        FOREACH course_area IN ARRAY course_areas LOOP
+            INSERT INTO Instructors (eid)
+            VALUES (new_eid);
+        END LOOP;
+    END IF;
+
+END;
+$$ LANGUAGE plpgsql;
 
 -- 3.
 CREATE OR REPLACE PROCEDURE add_customer (cust_name TEXT, address TEXT, phone TEXT, email TEXT, cc_number char(20), cvv INT, expiry_date DATE)
@@ -197,6 +273,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- For Testing
+-- CALL add_employee('Employee1', 'Singapore', '98385373', 'employee1@u.nus.edu', '300', NULL, '2021-01-02', 'administrator', '{}');
+-- CALL add_employee('Employee2', 'Singapore', '88984232', 'employee2@u.nus.edu', NULL, '10', '2021-02-02', 'instructor', '{}');
 -- CALL add_customer('Joel', 'CCK', '82345678', 'joel@joel.com', '1234123412341234', 123, '2021-01-01');
 -- CALL add_course_package('TESTING', 10, 5, '2021-01-01', '2021-05-05');
 -- CALL buy_course_package(1, 1);
