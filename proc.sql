@@ -197,6 +197,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 10. 
+/*
+Note to whoever is doing this function:
+
+For routine number 10 (add_course_offering), there's a missing input parameter for the target number of registrations. The second sentence should read:
+
+The inputs to the routine include the following: course offering identifier, course identifier, course fees, launch date, registration deadline,  target number of registrations, administrator’s identifier, and information for each session (session date, session start hour, and room identifier).
+*/
+
 -- 11.
 
 CREATE OR REPLACE PROCEDURE add_course_package (package_name TEXT, price INT, num_free_registrations INT, sale_start_date DATE, sale_end_date DATE) AS $$
