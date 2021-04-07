@@ -106,6 +106,56 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 22. TODO: Check start_time too
+CREATE OR REPLACE PROCEDURE update_room (course_id INT, launch_date date, sid INT, new_rid INT)
+AS $$
+DECLARE 
+    session_start_date date;
+    num_registrations INT;
+    num_redeems INT;
+    num_cancels INT;
+    new_seating_capacity INT;
+BEGIN
+    SELECT sessions_date INTO session_start_date
+    FROM Sessions
+    WHERE Sessions.course_id = update_room.course_id AND
+        Sessions.launch_date = update_room.launch_date AND
+        Sessions.sid = update_room.sid;
+
+    IF session_start_date < NOW() THEN
+        SELECT COUNT(*) INTO num_registrations
+        FROM Registers
+        WHERE Registers.course_id = update_room.course_id AND
+            Registers.launch_date = update_room.launch_date AND
+            Registers.sid = update_room.sid;
+
+        SELECT COUNT(*) INTO num_redeems
+        FROM Redeems
+        WHERE Redeems.course_id = update_room.course_id AND
+            Redeems.launch_date = update_room.launch_date AND
+            Redeems.sid = update_room.sid;
+
+        SELECT COUNT(*) INTO num_cancels
+        FROM Cancels
+        WHERE Cancels.course_id = update_room.course_id AND
+            Cancels.launch_date = update_room.launch_date AND
+            Cancels.sid = update_room.sid;
+
+        SELECT seating_capacity INTO new_seating_capacity
+        FROM Rooms
+        WHERE Rooms.rid = update_room.new_rid;
+
+        IF num_registrations + num_redeems - num_cancels <= new_seating_capacity THEN
+            UPDATE Sessions
+            SET Sessions.rid = update_room.new_rid
+            WHERE Sessions.course_id = update_room.course_id AND
+                Sessions.launch_date = update_room.launch_date AND
+                Sessions.sid = update_room.sid;
+        END IF;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 -- For Testing
 -- CALL add_customer('Joel', 'CCK', '82345678', 'joel@joel.com', '1234123412341234', 123, '2021-01-01');
 -- CALL add_course_package('TESTING', 10, 5, '2021-01-01', '2021-05-05');

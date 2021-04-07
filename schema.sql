@@ -26,6 +26,7 @@ DROP TABLE IF EXISTS Part_time_instructors CASCADE;
 DROP TABLE IF EXISTS Full_time_instructors CASCADE;
 DROP TABLE IF EXISTS Administrators CASCADE;
 DROP TABLE IF EXISTS Managers CASCADE;
+DROP TABLE IF EXISTS Course_areas CASCADE;
 DROP TABLE IF EXISTS Pay_slips CASCADE;
 DROP TABLE IF EXISTS Customers CASCADE;
 DROP TABLE IF EXISTS Credit_cards CASCADE;
@@ -84,7 +85,7 @@ CREATE TABLE IF NOT EXISTS Course_areas (
 CREATE TABLE IF NOT EXISTS Instructors (
     eid     integer     primary key references Employees
                         on delete cascade,
-    name    text        not null,
+    area    text        not null,
 
     foreign key (area) references Course_areas (area)
 );
@@ -239,7 +240,7 @@ CREATE TABLE IF NOT EXISTS Sessions (
     session_date    date        not null,
     start_time      integer     not null,
     end_time        integer     not null,
-    rid             SERIAL      not null,
+    rid             integer     not null,
     eid             integer     not null,
 
     primary key (sid, course_id, launch_date),
