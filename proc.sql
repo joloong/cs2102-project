@@ -226,7 +226,7 @@ AS $$
     WHERE sale_end_date >= NOW();
 $$ LANGUAGE sql;
 
--- 13. TODO: Each customer can have at most one active or partially active package.
+-- 13.
 CREATE OR REPLACE PROCEDURE buy_course_package (cust_id INT, package_id INT)
 AS $$
 DECLARE

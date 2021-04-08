@@ -410,3 +410,46 @@ CREATE CONSTRAINT TRIGGER customers_participation_constraint_trigger
 AFTER INSERT OR UPDATE ON Customers
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION customers_participation_constraint();
+
+-- TODO: What if customer change credit card?
+CREATE OR REPLACE FUNCTION at_most_one_active_or_partially_active_package()
+RETURNS TRIGGER
+AS $$
+DECLARE
+    num_unused_sessions INT;
+    last_transaction_date date;
+    last_package_id INT;
+    num_cancellable_sessions INT;
+BEGIN
+    SELECT num_remaining_registrations, transaction_date, package_id 
+    INTO num_unused_sessions, last_transaction_date, last_package_id
+    FROM Buys
+    WHERE Buys.cc_number = NEW.cc_number
+    ORDER BY transaction_date desc
+    LIMIT 1;
+
+    IF num_unused_sessions >= 1 THEN
+        RAISE EXCEPTION 'There is an active course package.';
+        RETURN NULL;
+    END IF;
+
+    SELECT COUNT(*)
+    INTO num_cancellable_sessions
+    FROM Redeems NATURAL JOIN Sessions
+    WHERE Redeems.transaction_date = last_transaction_date
+        AND Redeems.cc_number = NEW.cc_number
+        AND Redeems.package_id = last_package_id
+        AND Sessions.session_date - NOW() >= 7;
+
+    IF num_cancellable_sessions >= 1 THEN
+        RAISE EXCEPTION 'There is a partially active course package.';
+        RETURN NULL;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER at_most_one_active_or_partially_active_package_trigger
+BEFORE INSERT ON Buys
+FOR EACH ROW EXECUTE FUNCTION at_most_one_active_or_partially_active_package();
