@@ -199,6 +199,83 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 7.
+/*
+-- Note: the array of sorted hours will look something like this {9,10,2,3,4}, corresponding to 9am, 10am, 2pm, 3pm, 4pm respectively.
+*/
+CREATE OR REPLACE FUNCTION get_available_instructors (course_identifier INT, start_date DATE, end_date DATE)
+RETURNS TABLE (eid INT, name text, assigned_hours_month_total INT, day DATE, available_hours_on_day INT[])
+AS $$
+DECLARE
+    date_counter TIMESTAMP := start_date::TIMESTAMP;
+    course_duration INT;
+    time_counter1 INT := 9;
+    time_counter2 INT := 2;
+    r refcursor;
+    temp RECORD;
+    t1 INT;
+    items RECORD;
+BEGIN
+    DROP TABLE IF EXISTS temp_table;
+    CREATE TEMP TABLE IF NOT EXISTS temp_table (
+        eid                         INT,
+        name                        TEXT not null,
+        assigned_hours_month_total  INT default 0,
+        day                         DATE not null,
+        available_hours_on_day      INT[],
+        PRIMARY KEY (eid, day)
+    );
+    SELECT duration INTO course_duration FROM Courses WHERE course_id = course_identifier;
+
+    WHILE date_counter <= end_date::TIMESTAMP LOOP
+
+        WITH eid_hours AS (
+            -- eid's who have non-zero working hours
+            SELECT distinct R1.eid, SUM(Coalesce(R1.duration, 0)) as assigned_hours_month_total
+            FROM (Instructors NATURAL LEFT JOIN Sessions NATURAL LEFT JOIN Courses) R1
+            WHERE R1.session_date IS NOT NULL 
+                and extract(year from R1.session_date) = extract(year from date_counter) 
+                and extract(month from R1.session_date) = extract(month from date_counter) 
+            GROUP BY R1.eid
+        )
+        INSERT INTO temp_table (eid, name, assigned_hours_month_total, day, available_hours_on_day)
+        SELECT R1.eid, R1.name, Coalesce(R1.assigned_hours_month_total, 0), date_counter, ARRAY[]::INT[]
+        FROM (Instructors NATURAL JOIN Employees NATURAL LEFT JOIN eid_hours) R1;
+
+        -- consider session slots from 9am-12pm
+        WHILE time_counter1 <= (12 - course_duration) LOOP
+            -- consider time_counter1 as the session start time
+            FOR temp IN SELECT find_instructors(course_identifier, TO_CHAR(date_counter, 'YYYY-MM-DD')::DATE, time_counter1)
+            LOOP
+                t1 := row_to_json(temp)->'find_instructors'->'eid';
+                UPDATE temp_table
+                SET available_hours_on_day = temp_table.available_hours_on_day || ARRAY[time_counter1] /* array concatenation */
+                WHERE temp_table.day::DATE = date_counter::date and temp_table.eid = t1;
+            END LOOP;
+            time_counter1 := time_counter1 + 1;
+        END LOOP;
+        -- consider session slots from 2pm-6pm
+        WHILE time_counter2 <= (6 - course_duration) LOOP
+            -- consider time_counter2 as the session start time
+            FOR temp IN SELECT find_instructors(course_identifier, TO_CHAR(date_counter, 'YYYY-MM-DD')::DATE, time_counter2)
+            LOOP
+                t1 := row_to_json(temp)->'find_instructors'->'eid';
+                UPDATE temp_table
+                SET available_hours_on_day = temp_table.available_hours_on_day || ARRAY[time_counter2] /* array concatenation */
+                WHERE temp_table.day::DATE = date_counter::date and temp_table.eid = t1;
+            END LOOP;
+            time_counter2 := time_counter2 + 1;
+        END LOOP;
+
+        date_counter := date_counter + '1 day'::INTERVAL;
+    END LOOP;
+
+    RETURN QUERY
+    SELECT * FROM temp_table tt
+    WHERE cardinality(tt.available_hours_on_day) > 0;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 10. 
 /*
 Note to whoever is doing this function:
