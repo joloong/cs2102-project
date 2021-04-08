@@ -1,4 +1,9 @@
 -- CS2102 Project Team 41 proc.sql
+
+-- Routine Tracker
+-- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 11, 12, 13, 14, 17, 18, 22
+-- TODO: 8, 9, 10, 15, 16, 19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30
+
 -- 1.
 -- TODO: IF not administrator/manager/instructor
 -- Assumptions: Course_areas should exist in the database
