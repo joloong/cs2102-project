@@ -159,10 +159,14 @@ BEGIN
     session_month := extract(month from _session_date);
 
     RETURN QUERY
-    with specialist_employees as (
+    with current_instructors AS (
+        SELECT R1.eid
+        FROM (Instructors NATURAL JOIN Employees) R1
+        WHERE (R1.depart_date IS NULL) or (R1.depart_date >= _session_date)
+    ), specialist_employees as (
         /* Instructors that specialize in the course area */
         SELECT R1.eid
-        FROM (Instructors NATURAL JOIN Specializes) R1
+        FROM (current_instructors NATURAL JOIN Specializes) R1
         WHERE R1.area = session_area
         /* drop Instructors that would exceed the max of 30 hours per month by taking up the session */
         EXCEPT
@@ -186,10 +190,9 @@ BEGIN
         WHERE R1.eid = R2.eid and _session_date = R2.session_date and (
             -- both sessions need to be in the morning/afternoon to have a chance of overlapping
             (session_end_hour <= 12 and R2.end_time <= 12 or _session_start_hour >= 2 and R2.start_time >= 2) and (
-                ABS(R2.start_time - _session_start_hour) <= 1 or
-                ABS(R2.end_time - _session_start_hour) <= 1 or
-                ABS(R2.start_time - session_end_hour) <= 1 or
-                ABS(R2.end_time - session_end_hour) <= 1
+                -- there is not at least an hour of break
+                (R2.start_time - 1 < _session_start_hour and _session_start_hour < R2.end_time + 1) or 
+                (_session_start_hour - 1 < R2.start_time and R2.start_time < session_end_hour + 1)
             )
         )
     );
