@@ -514,3 +514,59 @@ FOR EACH ROW EXECUTE FUNCTION check_seating_capacity();
 CREATE TRIGGER check_seating_capacity_redeems_trigger
 BEFORE INSERT OR UPDATE ON Redeems
 FOR EACH ROW EXECUTE FUNCTION check_seating_capacity();
+
+CREATE OR REPLACE FUNCTION registered_redeemed_before_cancel()
+RETURNS TRIGGER
+AS $$
+DECLARE
+    cust_cc_number char(20);
+    num_registered INT;
+    num_redeemed INT;
+BEGIN
+    SELECT cc_number INTO cust_cc_number
+    FROM Owns
+    WHERE Owns.cust_id = NEW.cust_id
+    ORDER BY from_date desc
+    LIMIT 1;
+
+    SELECT COUNT(*)
+    INTO num_registered
+    FROM Registers
+    WHERE Registers.sid = NEW.sid
+        AND Registers.course_id = NEW.course_id
+        AND Registers.launch_date = NEW.launch_date
+        AND Registers.cc_number = cust_cc_number;
+
+    SELECT COUNT(*)
+    INTO num_redeemed
+    FROM Redeems
+    WHERE Redeems.sid = NEW.sid
+        AND Redeems.course_id = NEW.course_id
+        AND Redeems.launch_date = NEW.launch_date
+        AND Redeems.cc_number = cust_cc_number;
+
+    IF num_registered + num_redeemed = 0 THEN
+        RAISE EXCEPTION 'Session has not been registered or redeemed by user.';
+        RETURN NULL;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER registered_redeemed_before_cancel_trigger
+BEFORE INSERT ON Cancels
+FOR EACH ROW EXECUTE FUNCTION registered_redeemed_before_cancel();
+
+CREATE OR REPLACE FUNCTION disable_cancels_update_or_delete()
+RETURNS TRIGGER
+AS $$
+BEGIN
+    RAISE EXCEPTION 'Updating or deleting of Cancels is not allowed.';
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER disable_cancels_update_or_delete_trigger
+BEFORE UPDATE OR DELETE ON Cancels
+FOR EACH ROW EXECUTE FUNCTION disable_cancels_update_or_delete();
