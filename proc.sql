@@ -38,22 +38,15 @@ BEGIN
     RETURNING eid INTO new_eid;
 
     -- Insert - Specific
-    -- IF employee_category = 'instructor' THEN
-    --     FOREACH course_area IN ARRAY course_areas LOOP
-    --         INSERT INTO Instructors (eid, area)
-    --         VALUES (new_eid, course_area);
-    --     END LOOP;
-    -- END IF;
-
     IF monthly_rate IS NULL AND hourly_rate IS NOT NULL THEN
-        INSERT INTO Part_time_Emp (eid, hourly_rate)
-        VALUES (new_eid, hourly_rate);
         IF employee_category = 'administrator' THEN
             RAISE EXCEPTION 'Administrators cannot be part time employeees';
         END IF;
         IF employee_category = 'manager' THEN
             RAISE EXCEPTION 'Managers cannot be part time employees';
         END IF;
+        INSERT INTO Part_time_Emp (eid, hourly_rate)
+        VALUES (new_eid, hourly_rate);
         IF employee_category = 'instructor' THEN
             INSERT INTO Instructors (eid)
             VALUES (new_eid);
@@ -96,8 +89,6 @@ $$ LANGUAGE plpgsql;
 -- 2.
 CREATE OR REPLACE PROCEDURE remove_employee (eid INTEGER, depart_date DATE) 
 AS $$
-DECLARE
-    new_cust_id INT;
 BEGIN
     SELECT *
     FROM Employees
