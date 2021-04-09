@@ -577,7 +577,7 @@ AS $$
 DECLARE
     prev_max_sid INT;
 BEGIN
-    SELECT MAX(sid) INTO prev_max_sid
+    SELECT COALESCE(MAX(sid), 0) INTO prev_max_sid
     FROM Sessions
     WHERE Sessions.course_id = NEW.course_id AND Sessions.launch_date = NEW.launch_date;
 
