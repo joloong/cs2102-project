@@ -120,6 +120,6 @@ INSERT INTO Rooms (rid, seating_capacity, location) VALUES
 (1, 100, 'LT15');
 
 INSERT INTO Sessions (sid, course_id, launch_date, session_date, start_time, end_time, rid, eid) VALUES
-(1, 1, '2021-07-10', '2021-08-10', 2, 4, 1, 4);
+(1, 1, '2021-07-10', '2021-08-10', 14, 16, 1, 4);
 
 ALTER SEQUENCE Employees_eid_seq RESTART WITH 12;

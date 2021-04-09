@@ -269,7 +269,7 @@ CREATE TABLE IF NOT EXISTS Sessions (
     ),
     /* No sessions are conducted from 12pm to 2pm, before 9am, and beyond 6pm*/
     constraint valid_session_time check (
-        (start_time >= 9 and end_time <= 12) or (start_time >= 2 and end_time <= 6)
+        (start_time >= 9 and end_time <= 12) or (start_time >= 14 and end_time <= 18)
     )
 );
 

@@ -170,6 +170,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 6.
+
+-- Note: _session_start_hour should be a number in 24 hrs format, e.g. 4pm will be 16.
 CREATE OR REPLACE FUNCTION find_instructors (_course_identifier INT, _session_date DATE, _session_start_hour INT)
 RETURNS TABLE (eid INT, name text)
 AS $$
@@ -221,7 +223,7 @@ BEGIN
         FROM (instructor_names NATURAL LEFT JOIN Sessions) R2
         WHERE R1.eid = R2.eid and _session_date = R2.session_date and (
             -- both sessions need to be in the morning/afternoon to have a chance of overlapping
-            (session_end_hour <= 12 and R2.end_time <= 12 or _session_start_hour >= 2 and R2.start_time >= 2) and (
+            (session_end_hour <= 12 and R2.end_time <= 12 or _session_start_hour >= 14 and R2.start_time >= 14) and (
                 -- there is not at least an hour of break
                 (R2.start_time - 1 < _session_start_hour and _session_start_hour < R2.end_time + 1) or 
                 (_session_start_hour - 1 < R2.start_time and R2.start_time < session_end_hour + 1)
@@ -233,7 +235,7 @@ $$ LANGUAGE plpgsql;
 
 -- 7.
 /*
--- Note: the array of sorted hours will look something like this {9,10,2,3,4}, corresponding to 9am, 10am, 2pm, 3pm, 4pm respectively.
+-- Note: the array of sorted hours will look something like this {9,10,14,15,16}, corresponding to 9am, 10am, 2pm, 3pm, 4pm respectively.
 */
 CREATE OR REPLACE FUNCTION get_available_instructors (course_identifier INT, start_date DATE, end_date DATE)
 RETURNS TABLE (eid INT, name text, assigned_hours_month_total INT, day DATE, available_hours_on_day INT[])
@@ -242,7 +244,7 @@ DECLARE
     date_counter TIMESTAMP := start_date::TIMESTAMP;
     course_duration INT;
     time_counter1 INT := 9;
-    time_counter2 INT := 2;
+    time_counter2 INT := 14;
     r refcursor;
     temp RECORD;
     t1 INT;
@@ -287,7 +289,7 @@ BEGIN
             time_counter1 := time_counter1 + 1;
         END LOOP;
         -- consider session slots from 2pm-6pm
-        WHILE time_counter2 <= (6 - course_duration) LOOP
+        WHILE time_counter2 <= (18 - course_duration) LOOP
             -- consider time_counter2 as the session start time
             FOR temp IN SELECT find_instructors(course_identifier, TO_CHAR(date_counter, 'YYYY-MM-DD')::DATE, time_counter2)
             LOOP
