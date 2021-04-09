@@ -153,6 +153,7 @@ DECLARE
     session_area TEXT;
     session_end_hour INT;
     session_month DOUBLE PRECISION;
+    session_year DOUBLE PRECISION;
 BEGIN
     SELECT duration, area into session_duration, session_area
     FROM Courses
@@ -162,6 +163,7 @@ BEGIN
     session_end_hour := _session_start_hour + session_duration;
 
     session_month := extract(month from _session_date);
+    session_year := extract(year from _session_date);
 
     RETURN QUERY
     with current_instructors AS (
@@ -180,7 +182,7 @@ BEGIN
         WHERE (session_duration + (
             SELECT SUM(duration)
             FROM (Courses NATURAL JOIN Sessions) R2
-            WHERE R1.eid = R2.eid and (session_month = extract(month from R2.session_date))
+            WHERE R1.eid = R2.eid and session_year = extract(year from R2.session_date) and session_month = extract(month from R2.session_date)
         ) > 30)
     ), instructor_names AS (
         SELECT R1.eid, R1.name
