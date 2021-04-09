@@ -1,8 +1,8 @@
 -- CS2102 Project Team 41 proc.sql
 
 -- Routine Tracker
--- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 22
--- TODO: 10, 15, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30
+-- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 22, 23, 24, 25
+-- TODO: 10, 15, 20, 21, 26, 27, 28, 29, 30
 
 -- 1.
 -- TODO: IF not administrator/manager/instructor
@@ -788,6 +788,77 @@ BEGIN
             VALUES (sid, course_id, launch_date, session_date, start_time, start_time + course_duration, rid, eid);
         END IF;
     END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 25.
+CREATE OR REPLACE FUNCTION pay_salary()
+RETURNS TABLE(eid INT, name text, status text, num_work_days INT, num_work_hours INT, hourly_rate INT, monthly_rate INT, salary_paid INT)
+AS $$
+DECLARE
+    curs CURSOR FOR (SELECT * FROM Employees ORDER BY eid ASC);
+    r RECORD;
+    curr_month_days INT;
+    first_work_day INT;
+    last_work_day INT;
+BEGIN
+    curr_month_days := DATE_PART('days', DATE_TRUNC('month', NOW()) + '1 MONTH'::INTERVAL - '1 DAY'::INTERVAL);
+    OPEN curs;
+    LOOP
+        FETCH curs INTO r;
+        EXIT WHEN NOT FOUND;
+
+        IF r.eid IN (SELECT eid FROM Part_time_Emp) THEN
+            eid := r.eid;
+            name := r.name;
+            status = 'part-time';
+            num_work_days := NULL;
+            monthly_rate := NULL;
+
+            SELECT COALESCE(SUM(ST.duration), 0) INTO num_work_hours
+            FROM (Sessions NATURAL JOIN Courses) ST
+            WHERE ST.eid = r.eid AND
+                EXTRACT(MONTH FROM ST.session_date) = EXTRACT(MONTH FROM NOW());
+
+            SELECT PTE.hourly_rate INTO hourly_rate 
+            FROM Part_time_Emp PTE 
+            WHERE PTE.eid = r.eid;
+
+            salary_paid := hourly_rate * num_work_hours;
+
+        ELSE
+            eid := r.eid;
+            name := r.name;
+            status = 'full-time';
+            num_work_hours := NULL;
+            hourly_rate := NULL;
+
+            IF EXTRACT(MONTH FROM r.join_date) = EXTRACT(MONTH FROM NOW()) THEN
+                first_work_day := CAST(EXTRACT(DAY FROM r.join_date) AS INTEGER);
+            ELSE
+                first_work_day := 1;
+            END IF;
+
+            IF r.depart_date IS NOT NULL AND EXTRACT(MONTH FROM r.depart_date) = EXTRACT(MONTH FROM NOW()) THEN
+                last_work_day := CAST(EXTRACT(DAY FROM r.depart_date) AS INTEGER);
+            ELSE
+                last_work_day := curr_month_days;
+            END IF;
+            num_work_days := last_work_day - first_work_day + 1;
+            
+            SELECT FTE.monthly_rate INTO monthly_rate
+            FROM Full_time_Emp FTE
+            WHERE FTE.eid = r.eid;
+
+            salary_paid := CAST(((num_work_days / curr_month_days) * monthly_rate) AS INTEGER);
+        END IF;
+
+        INSERT INTO Pay_slips (eid, payment_date, amount, num_work_hours, num_work_days)
+        VALUES (eid, NOW(), salary_paid, num_work_hours, num_work_days);
+        
+        RETURN NEXT;
+    END LOOP;
+    CLOSE curs;
 END;
 $$ LANGUAGE plpgsql;
 
