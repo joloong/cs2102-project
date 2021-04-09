@@ -261,9 +261,9 @@ CREATE TABLE IF NOT EXISTS Sessions (
     constraint session_lte_launch_date check (
         launch_date <= session_date
     ),
-    /* No sessions are conducted from 12pm to 2pm*/
+    /* No sessions are conducted from 12pm to 2pm, before 9am, and beyond 6pm*/
     constraint not_lunchtime_session check (
-        end_time <= 12 or start_time >= 2
+        (start_time >= 9 and end_time <= 12) or (start_time >= 2 and end_time <= 6)
     )
 );
 
