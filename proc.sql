@@ -1,8 +1,8 @@
 -- CS2102 Project Team 41 proc.sql
 
 -- Routine Tracker
--- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 22
--- TODO: 10, 15, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30
+-- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 21, 22
+-- TODO: 10, 15, 20, 23, 24, 25, 26, 27, 28, 29, 30
 
 -- 1.
 -- TODO: IF not administrator/manager/instructor
@@ -654,6 +654,43 @@ BEGIN
             END IF;
         END IF;
         
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 21.
+/*
+Note: Extra parameter launch_date is added because the course_id and sid alone are insufficient to identify a particular Session.
+For example, if the same Course has two offerings running concurrently, where each offering has some session with the same id.
+*/
+CREATE OR REPLACE PROCEDURE update_instructors (_course_id INT, _sid INT, _new_eid INT, _launch_date DATE)
+AS $$
+DECLARE
+    _session_date DATE;
+    _session_start_time INT;
+    _session_end_time INT;
+BEGIN
+    -- check if the session, given by the course_id and sid even exists
+    IF (SELECT COUNT(*) FROM Sessions S WHERE S.course_id = _course_id and S.sid = _sid and S.launch_date = _launch_date) = 0 THEN
+        RAISE EXCEPTION 'Course id or session id is invalid.';
+    END IF;
+
+    -- check that the course session has not yet started
+    SELECT S.session_date INTO _session_date FROM Sessions S WHERE S.course_id = _course_id and S.sid = _sid and S.launch_date = _launch_date;
+    SELECT S.start_time INTO _session_start_time FROM Sessions S WHERE S.course_id = _course_id and S.sid = _sid and S.launch_date = _launch_date;
+    SELECT S.end_time INTO _session_end_time FROM Sessions S WHERE S.course_id = _course_id and S.sid = _sid and S.launch_date = _launch_date;
+    IF (NOW()::DATE > _session_date::DATE) OR (NOW() = _session_date AND EXTRACT(HOUR from current_time) >= _session_start_time) THEN
+        RAISE EXCEPTION 'Session has already started or is over.';
+    END IF;
+
+    -- check that new eid is not the same as old eid
+    IF _new_eid = (SELECT S.eid FROM Sessions S WHERE S.course_id = _course_id and S.sid = _sid and S.launch_date = _launch_date) THEN
+        RAISE EXCEPTION 'This Instructor is already conducting this session.';
+    END IF;
+
+    -- Check if the instructor is in the list of instructors that can be assigned to the course session.
+    IF _new_eid IN (SELECT eid FROM find_instructors(_course_id, _session_date, _session_start_time)) THEN
+        UPDATE Sessions SET eid = _new_eid WHERE sid = _sid AND course_id = _course_id AND launch_date = _launch_date;
     END IF;
 END;
 $$ LANGUAGE plpgsql;

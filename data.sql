@@ -99,7 +99,7 @@ INSERT INTO Instructors (eid) VALUES
 INSERT INTO Specializes (eid, area) VALUES
 (1, 'database systems'),
 (2, 'parallel computing'),
-(3, 'parallel computing'),
+(3, 'database systems'),
 (4, 'database systems'),
 (5, 'project management'),
 (6, 'theoretical physics');
