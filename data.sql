@@ -141,9 +141,10 @@ INSERT INTO Rooms (rid, seating_capacity, location) VALUES
 (9, 100, 'LT16'),
 (10, 69, 'LT69');
 
+/* sid is relative to the course_id */
 INSERT INTO Sessions (sid, course_id, launch_date, session_date, start_time, end_time, rid, eid) VALUES
 (1, 1, '2021-03-10', '2021-08-10', 14, 16, 1, 4),
-(2, 2, '2021-03-25', '2021-08-10', 16, 18, 2, 1);
+(1, 2, '2021-03-25', '2021-08-10', 16, 18, 2, 1);
 
 ALTER SEQUENCE Employees_eid_seq RESTART WITH 16;
 ALTER SEQUENCE Sessions_sid_seq RESTART WITH 3;
