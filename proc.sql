@@ -583,7 +583,7 @@ BEGIN
         Sessions.launch_date = update_room.launch_date AND
         Sessions.sid = update_room.sid;
 
-    IF session_start_date <= NOW() AND EXTRACT(HOUR from current_time) < session_start_time THEN
+    IF NOW() < session_start_date OR (NOW() == session_start_date AND EXTRACT(HOUR from current_time) < session_start_time) THEN
         SELECT COUNT(*) INTO num_registrations
         FROM Registers
         WHERE Registers.course_id = update_room.course_id AND
@@ -612,6 +612,88 @@ BEGIN
             WHERE Sessions.course_id = update_room.course_id AND
                 Sessions.launch_date = update_room.launch_date AND
                 Sessions.sid = update_room.sid;
+        END IF;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 23.
+CREATE OR REPLACE PROCEDURE remove_session (course_id INT, launch_date date, sid INT)
+AS $$
+DECLARE
+    session_start_date date;
+    session_start_time INT;
+    num_registrations INT;
+    num_redeems INT;
+    num_cancels INT;
+BEGIN
+    SELECT session_date, start_time INTO session_start_date, session_start_time
+    FROM Sessions
+    WHERE Sessions.course_id = remove_session.course_id AND
+        Sessions.launch_date = remove_session.launch_date AND
+        Sessions.sid = remove_session.sid;
+
+    IF NOW() < session_start_date OR (NOW() == session_start_date AND EXTRACT(HOUR from current_time) < session_start_time) THEN
+        SELECT COUNT(*) INTO num_registrations
+        FROM Registers
+        WHERE Registers.course_id = remove_session.course_id AND
+            Registers.launch_date = remove_session.launch_date AND
+            Registers.sid = remove_session.sid;
+
+        SELECT COUNT(*) INTO num_redeems
+        FROM Redeems
+        WHERE Redeems.course_id = remove_session.course_id AND
+            Redeems.launch_date = remove_session.launch_date AND
+            Redeems.sid = remove_session.sid;
+
+        SELECT COUNT(*) INTO num_cancels
+        FROM Cancels
+        WHERE Cancels.course_id = remove_session.course_id AND
+            Cancels.launch_date = remove_session.launch_date AND
+            Cancels.sid = remove_session.sid;
+
+        IF num_registrations + num_redeems - num_cancels <= 0 THEN
+            DELETE FROM Sessions
+            WHERE Sessions.course_id = remove_session.course_id AND
+                Sessions.launch_date = remove_session.launch_date AND
+                Sessions.sid = remove_session.sid;
+        END IF;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 24.
+CREATE OR REPLACE PROCEDURE add_session (course_id INT, launch_date date, sid INT, session_date date, start_time INT, rid INT, eid INT)
+AS $$
+DECLARE
+    course_duration INT;
+    registration_deadline DATE;
+    before_registration_deadline boolean;
+    valid_instructor boolean;
+    valid_room boolean;
+BEGIN
+    SELECT Courses.duration INTO course_duration
+    FROM Courses
+    WHERE Courses.course_id = add_session.course_id;
+
+    SELECT Offerings.registration_deadline INTO registration_deadline
+    FROM Offerings
+    WHERE Offerings.course_id = add_session.course_id AND
+        Offerings.launch_date = add_session.launch_date;
+
+    before_registration_deadline := NOW() <= registration_deadline;
+    IF before_registration_deadline THEN
+        valid_instructor := add_session.eid IN (
+            SELECT I.eid
+            FROM find_instructors(course_id, session_date, start_time) I
+        );
+        valid_room := add_session.rid IN (
+            SELECT R.rid
+            FROM find_rooms(session_date, start_time, course_duration) R
+        );
+        IF valid_instructor AND valid_room THEN
+            INSERT INTO Sessions (sid, course_id, launch_date, session_date, start_time, end_time, rid, eid)
+            VALUES (sid, course_id, launch_date, session_date, start_time, start_time + course_duration, rid, eid);
         END IF;
     END IF;
 END;
