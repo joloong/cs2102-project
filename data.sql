@@ -147,6 +147,5 @@ INSERT INTO Sessions (sid, course_id, launch_date, session_date, start_time, end
 (1, 2, '2021-03-25', '2021-08-10', 16, 18, 2, 1);
 
 ALTER SEQUENCE Employees_eid_seq RESTART WITH 16;
-ALTER SEQUENCE Sessions_sid_seq RESTART WITH 3;
 ALTER SEQUENCE Rooms_rid_seq RESTART WITH 11;
 -- Remember to add for the other tables that contain SERIAL
