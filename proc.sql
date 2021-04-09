@@ -313,6 +313,27 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 8.
+
+CREATE OR REPLACE FUNCTION find_rooms (_session_date DATE, _session_start_hour INT, _session_duration INT)
+RETURNS TABLE (rid INT)
+AS $$
+DECLARE
+    _session_end_hour INT;
+BEGIN
+    _session_end_hour := _session_start_hour + _session_duration;
+    RETURN QUERY
+    SELECT R1.rid
+    FROM (Rooms NATURAL LEFT JOIN Sessions) R1
+    WHERE R1.session_date IS NULL or (TO_CHAR(R1.session_date, 'YYYY-MM-DD')::DATE != TO_CHAR(_session_date, 'YYYY-MM-DD')::DATE) or not (
+        -- if a given session in R1 is on the same date as _session_date, ensure they don't overlap
+            (R1.start_time <= _session_start_hour and _session_start_hour < R1.end_time) or 
+            (_session_start_hour <= R1.start_time and R1.start_time < _session_end_hour)
+    )
+    ORDER BY R1.rid;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 10. 
 /*
 Note to whoever is doing this function:
