@@ -1,8 +1,8 @@
 -- CS2102 Project Team 41 proc.sql
 
 -- Routine Tracker
--- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 17, 18, 19, 22
--- TODO: 9, 10, 15, 16, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30
+-- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 22
+-- TODO: 10, 15, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30
 
 -- 1.
 -- TODO: IF not administrator/manager/instructor
@@ -236,6 +236,7 @@ $$ LANGUAGE plpgsql;
 -- 7.
 /*
 -- Note: the array of sorted hours will look something like this {9,10,14,15,16}, corresponding to 9am, 10am, 2pm, 3pm, 4pm respectively.
+-- Note: Instructors that do not have any available slots on a given day are intentionally excluded from the result.
 */
 CREATE OR REPLACE FUNCTION get_available_instructors (course_identifier INT, start_date DATE, end_date DATE)
 RETURNS TABLE (eid INT, name text, assigned_hours_month_total INT, day DATE, available_hours_on_day INT[])
@@ -314,7 +315,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 8.
-
 CREATE OR REPLACE FUNCTION find_rooms (_session_date DATE, _session_start_hour INT, _session_duration INT)
 RETURNS TABLE (rid INT)
 AS $$
@@ -331,6 +331,65 @@ BEGIN
             (_session_start_hour <= R1.start_time and R1.start_time < _session_end_hour)
     )
     ORDER BY R1.rid;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 9.
+/*
+Note: Rooms that are not available on a given day are intentionally excluded from the result.
+*/
+CREATE OR REPLACE FUNCTION get_available_rooms (start_date DATE, end_date DATE)
+RETURNS TABLE (rid INT, room_capacity INT, day DATE, available_hours_on_day INT[])
+AS $$
+DECLARE
+    date_counter TIMESTAMP := start_date::TIMESTAMP;
+    session_slots INT[] := array[9, 10, 11, 14, 15, 16, 17];
+    slot_hour INT;
+    temp RECORD;
+
+BEGIN
+    DROP TABLE IF EXISTS temp_room_table;
+    CREATE TEMP TABLE IF NOT EXISTS temp_room_table (
+        rid                     INT,
+        room_capacity           INT not null,
+        day                     DATE not null,
+        available_hours_on_day  INT[],
+        PRIMARY KEY (rid, day)
+    );
+
+    WHILE date_counter <= end_date::TIMESTAMP LOOP
+
+        INSERT INTO temp_room_table (rid, room_capacity, day, available_hours_on_day)
+        SELECT R1.rid, R1.seating_capacity as room_capacity, date_counter::DATE, ARRAY[]::INT[]
+        FROM Rooms R1;
+
+        -- availability of each room over all session_slots in a day
+        FOREACH slot_hour IN array session_slots LOOP
+            FOR temp IN
+                -- obtain a list of all the rooms that are available at this slot.
+                SELECT R1.rid
+                FROM Rooms R1
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM Sessions S1
+                    WHERE S1.rid = R1.rid and date_counter::DATE = S1.session_date::DATE and (
+                        S1.start_time <= slot_hour and slot_hour < S1.end_time
+                    )
+                )
+            LOOP
+                UPDATE temp_room_table
+                SET available_hours_on_day = temp_room_table.available_hours_on_day || ARRAY[slot_hour] /* array concatenation */
+                WHERE temp_room_table.rid = temp.rid;
+            END LOOP;
+        END LOOP;
+
+        date_counter := date_counter + '1 day'::INTERVAL;
+    END LOOP;
+
+    RETURN QUERY
+    SELECT * FROM temp_room_table tt
+    WHERE cardinality(tt.available_hours_on_day) > 0
+    ORDER BY tt.day, tt.rid;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -416,6 +475,39 @@ BEGIN
         'num_remaining_registrations', package_row.num_remaining_registrations,
         'redeemed_sessions_information', session_json
 	);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 16.
+/*
+Assumption: it is not possible to register for an offering whose launch_date is in the future.
+*/
+CREATE OR REPLACE FUNCTION get_available_course_sessions (_course_id INT)
+RETURNS TABLE (session_date DATE, session_start_hour INT, instructor_name TEXT, remaining_seats INT)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT s1.session_date, s1.start_time, (SELECT e1.name FROM Employees e1 WHERE e1.eid = s1.eid), 
+        (
+            SELECT R3.seating_capacity FROM Rooms R3 WHERE R3.rid = s1.rid
+        ) - (
+            SELECT COUNT(*)::INT FROM Registers R2
+            WHERE R2.sid = s1.sid and R2.course_id = s1.course_id and R2.launch_date = s1.launch_date
+        )
+    FROM Sessions s1 INNER JOIN Offerings o1 ON s1.course_id = o1.course_id and s1.launch_date = o1.launch_date
+    WHERE s1.course_id = _course_id and NOW()::DATE >= s1.launch_date::DATE and NOW()::DATE <= o1.registration_deadline::DATE and (
+        -- session can be registered only if capacity of the session is less than that of the room
+        (
+            SELECT COUNT(*)::INT
+            FROM Registers R2
+            WHERE R2.sid = s1.sid and R2.course_id = s1.course_id and R2.launch_date = s1.launch_date
+        ) < (
+            SELECT R3.seating_capacity
+            FROM Rooms R3
+            WHERE R3.rid = s1.rid
+        )
+    )
+    ORDER BY s1.session_date, s1.start_time;
 END;
 $$ LANGUAGE plpgsql;
 
