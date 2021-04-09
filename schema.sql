@@ -570,3 +570,23 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER disable_cancels_update_or_delete_trigger
 BEFORE UPDATE OR DELETE ON Cancels
 FOR EACH ROW EXECUTE FUNCTION disable_cancels_update_or_delete();
+
+CREATE OR REPLACE FUNCTION sequential_sid()
+RETURNS TRIGGER
+AS $$
+DECLARE
+    prev_max_sid INT;
+BEGIN
+    SELECT MAX(sid) INTO prev_max_sid
+    FROM Sessions
+    WHERE Sessions.course_id = NEW.course_id AND Sessions.launch_date = NEW.launch_date;
+
+    NEW.sid := prev_max_sid + 1;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER sequential_sid_trigger
+BEFORE INSERT ON Sessions
+FOR EACH ROW EXECUTE FUNCTION sequential_sid();
