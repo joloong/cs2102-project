@@ -273,7 +273,6 @@ CREATE TABLE IF NOT EXISTS Sessions (
     )
 );
 
--- TODO: Triggers to check if rid of sid has enough capacity.
 CREATE TABLE IF NOT EXISTS Registers (
     reg_date    date,
     sid         integer,
@@ -461,3 +460,57 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER at_most_one_active_or_partially_active_package_trigger
 BEFORE INSERT ON Buys
 FOR EACH ROW EXECUTE FUNCTION at_most_one_active_or_partially_active_package();
+
+CREATE OR REPLACE FUNCTION check_seating_capacity()
+RETURNS TRIGGER
+AS $$
+DECLARE
+    num_registered INT;
+    num_redeemed INT;
+    num_cancelled INT;
+    seating_cap INT;
+BEGIN
+    SELECT COUNT(*)
+    INTO num_registered
+    FROM Registers
+    WHERE Registers.launch_date = NEW.launch_date
+        AND Registers.course_id = NEW.course_id
+        AND Registers.sid = NEW.sid;
+
+    SELECT COUNT(*)
+    INTO num_redeemed
+    FROM Redeems
+    WHERE Redeems.launch_date = NEW.launch_date
+        AND Redeems.course_id = NEW.course_id
+        AND Redeems.sid = NEW.sid;
+
+    SELECT COUNT(*)
+    INTO num_cancelled
+    FROM Cancels
+    WHERE Cancels.launch_date = NEW.launch_date
+        AND Cancels.course_id = NEW.course_id
+        AND Cancels.sid = NEW.sid;
+
+    SELECT seating_capacity
+    INTO seating_cap
+    FROM Sessions NATURAL JOIN Rooms
+    WHERE Sessions.launch_date = NEW.launch_date
+        AND Sessions.course_id = NEW.course_id
+        AND Sessions.sid = NEW.sid;
+
+    IF num_registered + num_redeemed - num_cancelled >= seating_cap THEN
+        RAISE EXCEPTION 'Session has already reached maximum capacity.';
+        RETURN NULL;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_seating_capacity_registers_trigger
+BEFORE INSERT OR UPDATE ON Registers
+FOR EACH ROW EXECUTE FUNCTION check_seating_capacity();
+
+CREATE TRIGGER check_seating_capacity_redeems_trigger
+BEFORE INSERT OR UPDATE ON Redeems
+FOR EACH ROW EXECUTE FUNCTION check_seating_capacity();

@@ -451,7 +451,7 @@ BEGIN
 
     SELECT seating_capacity
     INTO new_seating_capacity
-    FROM Sessions
+    FROM Sessions NATURAL JOIN Rooms
     WHERE Sessions.launch_date = update_course_session.launch_date
         AND Sessions.course_id = update_course_session.course_id
         AND Sessions.sid = update_course_session.new_sid;
@@ -468,7 +468,7 @@ BEGIN
             FROM Cancels
             WHERE Cancels.launch_date = update_course_session.launch_date
                 AND Cancels.course_id = update_course_session.course_id
-                AND Cancels.cust_id = update_course_session.cust_id;
+                AND Cancels.cust_id = update_course_session.cust_id
         )
         SELECT sid
         INTO original_sid
@@ -494,7 +494,7 @@ BEGIN
                 FROM Cancels
                 WHERE Cancels.launch_date = update_course_session.launch_date
                     AND Cancels.course_id = update_course_session.course_id
-                    AND Cancels.cust_id = update_course_session.cust_id;
+                    AND Cancels.cust_id = update_course_session.cust_id
             )
             SELECT sid
             INTO original_sid
