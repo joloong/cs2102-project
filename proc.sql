@@ -236,6 +236,7 @@ $$ LANGUAGE plpgsql;
 -- 7.
 /*
 -- Note: the array of sorted hours will look something like this {9,10,14,15,16}, corresponding to 9am, 10am, 2pm, 3pm, 4pm respectively.
+-- Note: Instructors that do not have any available slots on a given day are intentionally excluded from the result.
 */
 CREATE OR REPLACE FUNCTION get_available_instructors (course_identifier INT, start_date DATE, end_date DATE)
 RETURNS TABLE (eid INT, name text, assigned_hours_month_total INT, day DATE, available_hours_on_day INT[])
@@ -314,7 +315,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 8.
-
 CREATE OR REPLACE FUNCTION find_rooms (_session_date DATE, _session_start_hour INT, _session_duration INT)
 RETURNS TABLE (rid INT)
 AS $$
@@ -331,6 +331,65 @@ BEGIN
             (_session_start_hour <= R1.start_time and R1.start_time < _session_end_hour)
     )
     ORDER BY R1.rid;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 9.
+/*
+Note: Rooms that are not available on a given day are intentionally excluded from the result.
+*/
+CREATE OR REPLACE FUNCTION get_available_rooms (start_date DATE, end_date DATE)
+RETURNS TABLE (rid INT, room_capacity INT, day DATE, available_hours_on_day INT[])
+AS $$
+DECLARE
+    date_counter TIMESTAMP := start_date::TIMESTAMP;
+    session_slots INT[] := array[9, 10, 11, 14, 15, 16, 17];
+    slot_hour INT;
+    temp RECORD;
+
+BEGIN
+    DROP TABLE IF EXISTS temp_room_table;
+    CREATE TEMP TABLE IF NOT EXISTS temp_room_table (
+        rid                     INT,
+        room_capacity           INT not null,
+        day                     DATE not null,
+        available_hours_on_day  INT[],
+        PRIMARY KEY (rid, day)
+    );
+
+    WHILE date_counter <= end_date::TIMESTAMP LOOP
+
+        INSERT INTO temp_room_table (rid, room_capacity, day, available_hours_on_day)
+        SELECT R1.rid, R1.seating_capacity as room_capacity, date_counter::DATE, ARRAY[]::INT[]
+        FROM Rooms R1;
+
+        -- availability of each room over all session_slots in a day
+        FOREACH slot_hour IN array session_slots LOOP
+            FOR temp IN
+                -- obtain a list of all the rooms that are available at this slot.
+                SELECT R1.rid
+                FROM Rooms R1
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM Sessions S1
+                    WHERE S1.rid = R1.rid and date_counter::DATE = S1.session_date::DATE and (
+                        S1.start_time <= slot_hour and slot_hour < S1.end_time
+                    )
+                )
+            LOOP
+                UPDATE temp_room_table
+                SET available_hours_on_day = temp_room_table.available_hours_on_day || ARRAY[slot_hour] /* array concatenation */
+                WHERE temp_room_table.rid = temp.rid;
+            END LOOP;
+        END LOOP;
+
+        date_counter := date_counter + '1 day'::INTERVAL;
+    END LOOP;
+
+    RETURN QUERY
+    SELECT * FROM temp_room_table tt
+    WHERE cardinality(tt.available_hours_on_day) > 0
+    ORDER BY tt.day, tt.rid;
 END;
 $$ LANGUAGE plpgsql;
 
