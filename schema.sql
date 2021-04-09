@@ -247,7 +247,7 @@ CREATE TABLE IF NOT EXISTS Rooms (
 );
 
 CREATE TABLE IF NOT EXISTS Sessions (
-    sid             INT,
+    sid             integer,
     course_id       integer,
     launch_date     date,
     session_date    date        not null,
