@@ -302,11 +302,14 @@ BEGIN
         END LOOP;
 
         date_counter := date_counter + '1 day'::INTERVAL;
+        time_counter1 := 9;
+        time_counter2 := 14;
     END LOOP;
 
     RETURN QUERY
     SELECT * FROM temp_table tt
-    WHERE cardinality(tt.available_hours_on_day) > 0;
+    WHERE cardinality(tt.available_hours_on_day) > 0
+    ORDER BY tt.day, tt.eid;
 END;
 $$ LANGUAGE plpgsql;
 
