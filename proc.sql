@@ -90,8 +90,42 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE PROCEDURE remove_employee (eid INTEGER, depart_date DATE) 
 AS $$
 BEGIN
-    SELECT *
-    FROM Employees
+    IF depart_date IS NULL THEN
+        RAISE EXCEPTION 'Depart date cannot be NULL';
+    END IF;
+    
+    -- (1) the employee is an administrator who is handling some course 
+    --     offering where its registration deadline is after the 
+    --     employee’s departure date
+    IF EXISTS (
+            SELECT 1 
+            FROM Offerings, Administrators
+            WHERE Offerings.eid = Administrators.eid
+            AND Administrators.eid = remove_employee.eid
+            AND Offerings.registration_deadline > remove_employee.depart_date) THEN 
+        RAISE EXCEPTION 'Cannot update employee - This administrator is still handling a course with a registration deadline that is not over yet (after their departure date).';
+    END IF;
+    -- (2) the employee is an instructor who is teaching some course
+    --     session that starts after the employee’s departure date
+    IF EXISTS (
+            SELECT 1 
+            FROM Sessions, Instructors
+            WHERE Sessions.eid = Instructors.eid
+            AND Instructors.eid = remove_employee.eid
+            AND Sessions.launch_date > remove_employee.depart_date) THEN 
+        RAISE EXCEPTION 'Cannot update employee - This instructor is teaching a course session that starts after their departure date.';
+    END IF;
+    -- (3) the employee is a manager who is managing some area.
+    IF EXISTS (
+            SELECT 1 
+            FROM Course_areas, Managers
+            WHERE Course_areas.eid = Managers.eid
+            AND Managers.eid = remove_employee.eid) THEN 
+        RAISE EXCEPTION 'Cannot update employee - This manager is currently managing an area.';
+    END IF;
+
+    UPDATE Employees
+    SET depart_date = remove_employee.depart_date
     WHERE Employees.eid = remove_employee.eid;
 END;
 $$ LANGUAGE plpgsql;
