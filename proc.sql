@@ -1,8 +1,8 @@
 -- CS2102 Project Team 41 proc.sql
 
 -- Routine Tracker
--- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 11, 12, 13, 14, 17, 18, 19, 22
--- TODO: 8, 9, 10, 15, 16, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30
+-- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 17, 18, 19, 22
+-- TODO: 9, 10, 15, 16, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30
 
 -- 1.
 -- TODO: IF not administrator/manager/instructor
