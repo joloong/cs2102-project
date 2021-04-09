@@ -18,6 +18,12 @@
 -- RELATIONS
 --
 
+/*
+CONSTRAINT THAT CANNOT BE COVERED:
+    - If user registers/redeems the same session that he cancelled.
+*/ 
+
+
 DROP TABLE IF EXISTS Part_time_Emp CASCADE;
 DROP TABLE IF EXISTS Employees CASCADE;
 DROP TABLE IF EXISTS Full_time_Emp CASCADE;
@@ -267,6 +273,7 @@ CREATE TABLE IF NOT EXISTS Sessions (
     )
 );
 
+-- TODO: Triggers to check if rid of sid has enough capacity.
 CREATE TABLE IF NOT EXISTS Registers (
     reg_date    date,
     sid         integer,
@@ -295,6 +302,7 @@ CREATE TABLE IF NOT EXISTS Redeems (
     foreign key (transaction_date, cc_number, package_id) references Buys
 );
 
+-- TODO: Trigger to check that user can only cancel sessions that he has registered/redeemed.
 CREATE TABLE IF NOT EXISTS Cancels (
     cancel_date     date,
     sid             integer,

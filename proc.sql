@@ -1,8 +1,8 @@
 -- CS2102 Project Team 41 proc.sql
 
 -- Routine Tracker
--- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 11, 12, 13, 14, 17, 18, 22
--- TODO: 8, 9, 10, 15, 16, 19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30
+-- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 11, 12, 13, 14, 17, 18, 19, 22
+-- TODO: 8, 9, 10, 15, 16, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30
 
 -- 1.
 -- TODO: IF not administrator/manager/instructor
@@ -430,6 +430,86 @@ BEGIN
             RSC.course_id = O.course_id
     WHERE RSC.session_date <= NOW() AND 
         EXTRACT(HOUR from current_time) < RSC.end_time;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 19.
+CREATE OR REPLACE PROCEDURE update_course_session (cust_id INT, course_id INT, launch_date date, new_sid INT) 
+AS $$
+DECLARE
+    cust_cc_number char(20);
+    new_seating_capacity INT;
+    original_sid INT;
+BEGIN
+    SELECT cc_number INTO cust_cc_number
+    FROM Owns
+    WHERE Owns.cust_id = update_course_session.cust_id
+    ORDER BY from_date desc
+    LIMIT 1;
+
+    SELECT seating_capacity
+    INTO new_seating_capacity
+    FROM Sessions
+    WHERE Sessions.launch_date = update_course_session.launch_date
+        AND Sessions.course_id = update_course_session.course_id
+        AND Sessions.sid = update_course_session.new_sid;
+
+    IF new_seating_capacity >= 1 AND cust_cc_number IS NOT NULL THEN
+        WITH RegisterNotCancelled AS (
+            SELECT sid
+            FROM Registers
+            WHERE Registers.launch_date = update_course_session.launch_date
+                AND Registers.course_id = update_course_session.course_id
+                AND Registers.cc_number = cust_cc_number
+            EXCEPT
+            SELECT sid
+            FROM Cancels
+            WHERE Cancels.launch_date = update_course_session.launch_date
+                AND Cancels.course_id = update_course_session.course_id
+                AND Cancels.cust_id = update_course_session.cust_id;
+        )
+        SELECT sid
+        INTO original_sid
+        FROM RegisterNotCancelled
+        LIMIT 1; -- Should be implicit that there is at most 1 possible sid.
+
+        IF original_sid IS NOT NULL THEN
+            UPDATE Registers
+            SET Registers.sid = update_course_session.new_sid
+            WHERE Registers.sid = original_sid
+                AND Registers.launch_date = update_course_session.launch_date
+                AND Registers.course_id = update_course_session.course_id
+                AND Registers.cc_number = cust_cc_number;
+        ELSE
+            WITH RedeemNotCancelled AS (
+                SELECT sid
+                FROM Redeems
+                WHERE Redeems.launch_date = update_course_session.launch_date
+                    AND Redeems.course_id = update_course_session.course_id
+                    AND Redeems.cc_number = cust_cc_number
+                EXCEPT
+                SELECT sid
+                FROM Cancels
+                WHERE Cancels.launch_date = update_course_session.launch_date
+                    AND Cancels.course_id = update_course_session.course_id
+                    AND Cancels.cust_id = update_course_session.cust_id;
+            )
+            SELECT sid
+            INTO original_sid
+            FROM RedeemNotCancelled
+            LIMIT 1; -- Should be implicit that there is at most 1 possible sid.
+
+            IF original_sid IS NOT NULL THEN
+                UPDATE Redeems
+                SET Redeems.sid = update_course_session.new_sid
+                WHERE Redeems.sid = original_sid
+                    AND Redeems.launch_date = update_course_session.launch_date
+                    AND Redeems.course_id = update_course_session.course_id
+                    AND Redeems.cc_number = cust_cc_number;
+            END IF;
+        END IF;
+        
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
