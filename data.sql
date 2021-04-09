@@ -117,9 +117,21 @@ INSERT INTO Offerings (course_id, launch_date, start_date, end_date, registratio
 (1, '2021-07-10', '2021-08-10', '2021-11-11', '2021-07-25', 1000, 100, 100, 11);
 
 INSERT INTO Rooms (rid, seating_capacity, location) VALUES
-(1, 100, 'LT15');
+(1, 100, 'LT15'),
+(2, 200, 'LT27'),
+(3, 20, 'COM1-0101'),
+(4, 20, 'COM2-0102'),
+(5, 90, 'AS-27'),
+(6, 150, 'LT19'),
+(7, 15, 'COM1-0201'),
+(8, 15, 'COM2-0202'),
+(9, 100, 'LT16'),
+(10, 69, 'LT69');
 
 INSERT INTO Sessions (sid, course_id, launch_date, session_date, start_time, end_time, rid, eid) VALUES
 (1, 1, '2021-07-10', '2021-08-10', 14, 16, 1, 4);
 
 ALTER SEQUENCE Employees_eid_seq RESTART WITH 12;
+ALTER SEQUENCE Sessions_sid_seq RESTART WITH 2;
+ALTER SEQUENCE Rooms_rid_seq RESTART WITH 11;
+-- Remember to add for the other tables that contain SERIAL
