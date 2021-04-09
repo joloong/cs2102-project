@@ -478,6 +478,39 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 16.
+/*
+Assumption: it is not possible to register for an offering whose launch_date is in the future.
+*/
+CREATE OR REPLACE FUNCTION get_available_course_sessions (_course_id INT)
+RETURNS TABLE (session_date DATE, session_start_hour INT, instructor_name TEXT, remaining_seats INT)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT s1.session_date, s1.start_time, (SELECT e1.name FROM Employees e1 WHERE e1.eid = s1.eid), 
+        (
+            SELECT R3.seating_capacity FROM Rooms R3 WHERE R3.rid = s1.rid
+        ) - (
+            SELECT COUNT(*)::INT FROM Registers R2
+            WHERE R2.sid = s1.sid and R2.course_id = s1.course_id and R2.launch_date = s1.launch_date
+        )
+    FROM Sessions s1 INNER JOIN Offerings o1 ON s1.course_id = o1.course_id and s1.launch_date = o1.launch_date
+    WHERE s1.course_id = _course_id and NOW()::DATE >= s1.launch_date::DATE and NOW()::DATE <= o1.registration_deadline::DATE and (
+        -- session can be registered only if capacity of the session is less than that of the room
+        (
+            SELECT COUNT(*)::INT
+            FROM Registers R2
+            WHERE R2.sid = s1.sid and R2.course_id = s1.course_id and R2.launch_date = s1.launch_date
+        ) < (
+            SELECT R3.seating_capacity
+            FROM Rooms R3
+            WHERE R3.rid = s1.rid
+        )
+    )
+    ORDER BY s1.session_date, s1.start_time;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 17. TODO: Implement triggers to check valid
 CREATE OR REPLACE PROCEDURE register_session (cust_id INT, course_id INT, launch_date date, sid INT, payment_method TEXT)
 AS $$
