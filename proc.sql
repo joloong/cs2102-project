@@ -4,6 +4,8 @@
 -- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
 -- TODO: 28, 29, 30
 
+
+
 -- 1.
 -- TODO: IF not administrator/manager/instructor
 -- Assumptions: Course_areas should exist in the database
@@ -1161,6 +1163,94 @@ BEGIN
             EXIT;
         END IF;
     END LOOP;
+    CLOSE curs;
+END;
+$$ LANGUAGE plpgsql;
+
+--28.
+CREATE OR REPLACE FUNCTION popular_courses() 
+RETURNS TABLE (course_id INT, title TEXT, area TEXT, num_offerings INT, num_regs_latest_offering INT) AS $$
+DECLARE
+    curs CURSOR FOR (
+        WITH registrations AS (
+            SELECT rg.course_id, rg.launch_date, count(*) AS num_registrations
+            FROM Registers rg
+            GROUP BY rg.course_id, rg.launch_date
+        ),
+        redemptions AS (
+            SELECT rd.course_id, rd.launch_date, count(*) AS num_redemptions
+            FROM Redeems rd
+            GROUP BY rd.course_id, rd.launch_date
+        ),
+        cancellations AS (
+            SELECT c.course_id, c.launch_date, count(*) AS num_cancellations
+            FROM Cancels c
+            GROUP BY c.course_id, c.launch_date
+        ),
+        total_registrations AS (
+            SELECT c.course_id, c.title, c.area, o1.launch_date
+            FROM Courses c NATURAL LEFT OUTER JOIN Offerings o1
+            WHERE EXTRACT(YEAR FROM o1.start_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND (
+                SELECT count(o2.launch_date) > 2
+                FROM Offerings o2
+                WHERE c.course_id = o2.course_id
+            )
+        )
+        SELECT total_registrations.course_id, total_registrations.title, total_registrations.area, total_registrations.launch_date, COALESCE(registrations.num_registrations, 0) + COALESCE(redemptions.num_redemptions, 0) - COALESCE(cancellations.num_cancellations, 0) AS total_registrations
+        FROM total_registrations 
+            NATURAL LEFT OUTER JOIN registrations
+            NATURAL LEFT OUTER JOIN redemptions
+            NATURAL LEFT OUTER JOIN cancellations
+        ORDER BY total_registrations.course_id, total_registrations.launch_date
+    );
+    current_rec RECORD;
+    previous_rec RECORD;
+    is_popular BOOLEAN;
+    num_offerings INT;
+BEGIN
+    num_offerings := 1;
+    is_popular := TRUE;
+
+    OPEN curs;
+    FETCH curs INTO previous_rec;
+    LOOP
+        FETCH curs INTO current_rec;
+        EXIT WHEN NOT FOUND;
+        
+        IF previous_rec.course_id = current_rec.course_id THEN
+            IF previous_rec.total_registrations >= current_rec.total_registrations THEN
+                is_popular := FALSE;
+            ELSE
+                num_offerings := num_offerings + 1;
+            END IF;
+        ELSIF previous_rec.course_id <> current_rec.course_id THEN
+            IF is_popular = TRUE THEN
+                course_id := previous_rec.course_id;
+                title := previous_rec.title;
+                area := previous_rec.area;
+                num_offerings := num_offerings;
+                num_regs_latest_offering := previous_rec.total_registrations;
+                RETURN NEXT;
+                num_offerings := 1;
+            ELSE
+                is_popular := TRUE;
+                num_offerings := 1;
+            END IF;
+        END IF;
+        previous_rec := current_rec;
+    END LOOP;
+    
+    IF is_popular = TRUE THEN
+        popular_courses.course_id := previous_rec.course_id;
+        popular_courses.title := previous_rec.title;
+        popular_courses.area := previous_rec.area;
+
+        popular_courses.num_offerings := num_offerings;
+        popular_courses.num_regs_latest_offering := previous_rec.total_registrations;
+        RETURN NEXT;
+    END IF;
+
     CLOSE curs;
 END;
 $$ LANGUAGE plpgsql;

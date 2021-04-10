@@ -135,6 +135,8 @@ CALL register_session(2, 5, '2021-02-01', 1, 'credit_card');
 CALL register_session(2, 5, '2021-03-01', 2, 'credit_card');
 CALL register_session(2, 6, '2021-01-01', 4, 'credit_card');
 
+CALL register_session(3, 1, '2021-02-01', 1, 'credit_card');
+CALL register_session(3, 1, '2021-02-01', 2, 'credit_card');
 CALL register_session(3, 2, '2021-01-01', 5, 'credit_card');
 CALL register_session(3, 2, '2021-02-01', 3, 'credit_card');
 CALL register_session(3, 3, '2021-01-01', 2, 'credit_card');
