@@ -1,5 +1,15 @@
 -- CS2102 Project Team 41 proc.sql
 
+DROP FUNCTION IF EXISTS
+find_instructors, get_available_instructors, find_rooms, get_available_rooms, get_available_course_packages,
+get_my_course_package, get_available_course_offerings, get_available_course_sessions, get_my_registrations, pay_salary,
+promote_courses, top_packages, popular_courses, view_summary_report, view_manager_report;
+
+DROP PROCEDURE IF EXISTS
+add_employee, remove_employee, add_customer, update_credit_card, add_course, add_course_offering,
+add_course_package, buy_course_package, register_session, update_course_session, cancel_registration,
+update_instructors, update_room, remove_session, add_session;
+
 -- Routine Tracker
 -- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29
 -- TODO: 30
