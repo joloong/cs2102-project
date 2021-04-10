@@ -1338,9 +1338,10 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 30.
-CREATE OR REPLACE function view_manager_report() RETURNS TABLE(name text, num_areas int, num_offerings int, total_fees INT, titles text) as $$
+CREATE OR REPLACE FUNCTION view_manager_report() 
+RETURNS TABLE(name TEXT, num_areas INT, num_offerings INT, total_fees INT, titles TEXT[]) as $$
 DECLARE
-    cursA CURSOR FOR (
+    cur1 CURSOR FOR (
         SELECT E.name, E.eid
         FROM Managers M, Employees E
         WHERE M.eid = E.eid
@@ -1348,103 +1349,113 @@ DECLARE
     r RECORD;
     n INT;
 BEGIN
-    OPEN cursA;
+    OPEN cur1;
     LOOP
-        FETCH cursA INTO r;
+        FETCH cur1 INTO r;
         EXIT WHEN NOT FOUND;
-        n := (WITH C2 AS (
-                SELECT * FROM compute_net_registration_fees(r.eid))
+
+        n := (WITH c2 AS (
+                SELECT * 
+                FROM compute_registration_fees(r.eid))
             SELECT COUNT(*)
-            FROM Courses C1, C2
-            WHERE (C1.course_id = C2.course_id)
-            AND (C2.fee = (
-                SELECT MAX(fee) FROM C2)));
+            FROM Courses c1, c2
+            WHERE (c1.course_id = c2.course_id)
+            AND (c2.fee = (
+                SELECT MAX(fee) FROM c2)));
+        
         IF n = 0 THEN
             n := 1;
         END IF;
 
         LOOP
             EXIT WHEN n = 0;
-            name := r.name;
-            num_areas := (SELECT COUNT(*)
-                                FROM Course_areas C
-                                WHERE C.eid = r.eid);
-            num_offerings := (SELECT COUNT(*)
-                                    FROM Course_areas CA, Courses C, Offerings O
-                                    WHERE (CA.eid = r.eid)
-                                    AND (C.area = CA.area)
-                                    AND (O.course_id = C.course_id)
-                                    AND ((SELECT DATE_PART('year', O.end_date)) = (SELECT DATE_PART('year', NOW()))));
-            total_fees := (WITH c AS (
-                            SELECT *
-                            FROM compute_net_registration_fees(r.eid))
-                        SELECT SUM(c.fee)
-                        FROM c);
 
-            titles := (WITH C2 AS (SELECT * FROM compute_net_registration_fees(r.eid))
-                               SELECT C1.title
-                               FROM Courses C1, C2
-                               WHERE (C1.course_id = C2.course_id)
-                               AND (C2.fee = (SELECT MAX(fee) FROM C2))
-                               OFFSET (n - 1)
-                               LIMIT 1);
+            name := r.name;
+
+            num_areas := (SELECT COUNT(*)
+                                FROM Course_areas ca
+                                WHERE ca.eid = r.eid);
+
+            num_offerings := (SELECT COUNT(*)
+                                    FROM Course_areas ca, Courses c, Offerings o
+                                    WHERE ca.eid = r.eid
+                                    AND c.area = ca.area
+                                    AND o.course_id = c.course_id
+                                    AND EXTRACT(YEAR FROM o.end_date) = EXTRACT(YEAR FROM CURRENT_DATE));
+            
+            total_fees := (WITH c AS (
+                                SELECT *
+                                FROM compute_registration_fees(r.eid))
+                            SELECT SUM(c.fee)
+                            FROM c);
+
+            WITH c2 AS (
+                    SELECT * 
+                    FROM compute_registration_fees(r.eid))
+                SELECT ARRAY_AGG(c1.title) INTO titles
+                FROM Courses c1, c2
+                WHERE (c1.course_id = c2.course_id)
+                AND (c2.fee = (SELECT MAX(fee) FROM c2))
+                OFFSET (n - 1);
+
             RETURN NEXT;
             n := n - 1;
         END LOOP;
     END LOOP;
-    CLOSE cursA;
+    CLOSE cur1;
 END;
 $$ LANGUAGE plpgsql;
 
 -- Helper function
-CREATE OR REPLACE FUNCTION compute_net_registration_fees (in_eid INT) RETURNS TABLE(course_id INT, fee INT) AS $$
+CREATE OR REPLACE FUNCTION compute_registration_fees (eid INT) 
+RETURNS TABLE(course_id INT, fee INT) AS $$
 DECLARE
-    curs CURSOR for (
+    cur2 CURSOR for (
         SELECT C.course_id
-        FROM Courses C, Course_areas CA
-        WHERE (CA.area = C.area) AND (CA.eid = in_eid)
+        FROM Courses c, Course_areas ca
+        WHERE (ca.area = c.area) AND (ca.eid = compute_registration_fees.eid)
     );
-    re RECORD;
+    r2 RECORD;
 BEGIN
-    OPEN curs;
+    OPEN cur2;
     LOOP
-        FETCH curs INTO re;
+        FETCH cur2 INTO r2;
         EXIT WHEN NOT FOUND;
 
-        course_id := re.course_id;
+        course_id := r2.course_id;
         fee := (SELECT coalesce((
-            SELECT SUM(O.fees)
-            FROM Offerings O, Sessions S, Registers R
-            WHERE (O.course_id = re.course_id)
-            AND ((SELECT DATE_PART('year', O.end_date)) = (SELECT DATE_PART('year', NOW())))
-            AND (S.course_id = O.course_id)
-            AND (S.launch_date = O.launch_date)
-            AND (R.sid = S.sid)), 0)
+            SELECT SUM(o.fees)
+            FROM Offerings o, Sessions s, Registers r
+            WHERE o.course_id = r2.course_id
+            AND EXTRACT(YEAR FROM o.end_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND s.course_id = o.course_id
+            AND s.launch_date = o.launch_date
+            AND r.sid = s.sid), 0)
         )
         -
         (SELECT coalesce((
-            SELECT SUM(CL.refund_amt)
-            FROM Offerings O, Sessions S, Cancels CL
-            WHERE (O.course_id = re.course_id)
-            AND ((SELECT DATE_PART('year', O.end_date)) = (SELECT DATE_PART('year', NOW())))
-            AND (S.course_id = O.course_id)
-            AND (S.launch_date = O.launch_date)
-            AND (CL.sid = S.sid)), 0)
+            SELECT SUM(c.refund_amt)
+            FROM Offerings o, Sessions s, Cancels c
+            WHERE (o.course_id = r2.course_id)
+            AND EXTRACT(YEAR FROM o.end_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND (s.course_id = o.course_id)
+            AND (s.launch_date = o.launch_date)
+            AND (c.sid = s.sid)), 0)
         )
         +
         (SELECT coalesce((
-            SELECT SUM(CP.price / CP.num_free_registrations)
-            FROM Offerings O, Sessions S, Course_packages CP, Redeems R
-            WHERE (O.course_id = re.course_id)
-            AND ((SELECT DATE_PART('year', O.end_date)) = (SELECT DATE_PART('year', NOW())))
-            AND (S.course_id = O.course_id)
-            AND (S.launch_date = O.launch_date)
-            AND (R.sid = S.sid)
-            AND (R.package_id = CP.package_id)), 0)
+            SELECT SUM(p.price / p.num_free_registrations)
+            FROM Offerings o, Sessions s, Course_packages p, Redeems r
+            WHERE (O.course_id = r2.course_id)
+            AND EXTRACT(YEAR FROM o.end_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND (s.course_id = o.course_id)
+            AND (s.launch_date = o.launch_date)
+            AND (r.sid = s.sid)
+            AND (r.package_id = p.package_id)), 0)
         );
         RETURN NEXT;
     END LOOP;
-    CLOSE curs;
+    CLOSE cur2;
 END;
 $$ LANGUAGE plpgsql;
 
