@@ -26,12 +26,12 @@ DELETE FROM Cancels;
 
 
 INSERT INTO Employees (eid, name, phone, email, join_date, address, depart_date) VALUES
-(1, 'Alice', '90991044', 'alice@cs2102.com', '1999-01-08', '10 Heng Mui Keng Terrace', null),
-(2, 'Bob', '90992242', 'bob@cs2102.com', '1999-01-11', '4 Sandilands Lane', null),
-(3, 'Charlie', '93391069', 'charlie@cs2102.com', '2019-03-25', 'COM1, School Of Computing', null),
-(4, 'Daniel', '99999921', 'daniel@cs2102.com', '2012-04-25', '15 Kent Ridge Drive', null),
-(5, 'Esther', '90881044', 'esther@cs2102.com', '2009-02-08', '10 Heng Mui Keng Terrace', null),
-(6, 'Frodo', '90944242', 'frodo@cs2102.com', '2001-02-11', '4 Sandilands Lane', null),
+(1, 'Alice Instructor', '90991044', 'alice@cs2102.com', '1999-01-08', '10 Heng Mui Keng Terrace', null),
+(2, 'Bob Instructor', '90992242', 'bob@cs2102.com', '1999-01-11', '4 Sandilands Lane', null),
+(3, 'Charlie Instructor', '93391069', 'charlie@cs2102.com', '2019-03-25', 'COM1, School Of Computing', null),
+(4, 'Daniel Instructor', '99999921', 'daniel@cs2102.com', '2012-04-25', '15 Kent Ridge Drive', null),
+(5, 'Esther Instructor', '90881044', 'esther@cs2102.com', '2009-02-08', '10 Heng Mui Keng Terrace', null),
+(6, 'Frodo Instructor', '90944242', 'frodo@cs2102.com', '2001-02-11', '4 Sandilands Lane', null),
 (7, 'Gary Manager', '91234554', 'gary@cs2102.com', '2019-03-25', 'The Interlace', null),
 (8, 'Hemanshu Manager', '97126111', 'hemanshu@cs2102.com', '2012-04-27', 'Sentosa Cove', null),
 (9, 'Firzan Manager', '91234114', 'firzan@cs2102.com', '2019-03-25', 'The Interlace', null),
@@ -40,7 +40,14 @@ INSERT INTO Employees (eid, name, phone, email, join_date, address, depart_date)
 (12, 'Jacob Administrator', '91126711', 'jacob@cs2102.com', '2012-04-27', '29 Buona Vista Drive', null),
 (13, 'Kate Administrator', '92234714', 'kate@cs2102.com', '2019-03-25', '3 Adis Road', null),
 (14, 'Louis Administrator', '93126701', 'louis@cs2102.com', '2012-04-27', 'Telok Kurau Lorong J', null),
-(15, 'Mike Administrator', '94126766', 'mike@cs2102.com', '2012-04-27', 'Telok Kurau Lorong K', null);
+(15, 'Mike Administrator', '94126766', 'mike@cs2102.com', '2012-04-27', 'Telok Kurau Lorong K', null),
+(16, 'Samuel Instructor', '99145644', 'samuel@cs2102.com', '1999-01-08', '10 Heng Mui Keng Terrace', null),
+(17, 'Trudy Instructor', '90000000', 'trudy@cs2102.com', '1999-01-11', '4 Sandilands Lane', null),
+(18, 'Ronaldo Instructor', '91111111', 'ronaldo@cs2102.com', '2019-03-25', 'COM1, School Of Computing', null),
+(19, 'Wayne Instructor', '92121211', 'wayne@cs2102.com', '2012-04-25', '15 Kent Ridge Drive', '2015-04-25'),
+(20, 'Sebastian Instructor', '90991047', 'sebastian@cs2102.com', '2009-02-08', '10 Heng Mui Keng Terrace', '2009-08-08'),
+(21, 'Victoria Manager', '93826781', 'victoria@cs2102.com', '2020-04-27', 'Telok Kurau Lorong J', null),
+(22, 'Thomas Manager', '94126733', 'thomas@cs2102.com', '2020-04-27', 'Telok Kurau Lorong K', null);
 
 INSERT INTO Full_time_Emp (eid, monthly_rate) VALUES
 (5, 4000),
@@ -53,25 +60,36 @@ INSERT INTO Full_time_Emp (eid, monthly_rate) VALUES
 (12, 6000),
 (13, 6000),
 (14, 6000),
-(15, 5000);
+(15, 5000),
+(21, 5400),
+(22, 5800);
 
 INSERT INTO Part_time_Emp (eid, hourly_rate) VALUES
 (1, 69),
 (2, 75),
 (3, 40),
-(4, 120);
+(4, 120),
+(16, 69),
+(17, 75),
+(18, 75),
+(19, 100),
+(20, 130);
 
 INSERT INTO Managers (eid) VALUES
 (7),
 (8),
 (9),
-(10);
+(10),
+(21),
+(22);
 
 INSERT INTO Course_areas (area, eid) VALUES
+('computer networking', 21),
 ('database systems', 7),
 ('parallel computing', 8),
 ('project management', 9),
-('theoretical physics', 10);
+('theoretical physics', 10),
+('mathematics', 22);
 
 INSERT INTO Instructors (eid) VALUES
 (1),
@@ -79,21 +97,33 @@ INSERT INTO Instructors (eid) VALUES
 (3),
 (4),
 (5),
-(6);
+(6),
+(16),
+(17),
+(18),
+(19),
+(20);
 
 INSERT INTO Specializes (eid, area) VALUES
 (1, 'database systems'),
 (2, 'parallel computing'),
+(2, 'computer networking'),
 (3, 'database systems'),
 (4, 'database systems'),
 (5, 'project management'),
-(6, 'theoretical physics');
+(6, 'theoretical physics'),
+(6, 'mathematics');
 
 INSERT INTO Part_time_instructors (eid) VALUES
 (1),
 (2),
 (3),
-(4);
+(4),
+(16),
+(17),
+(18),
+(19),
+(20);
 
 INSERT INTO Full_time_instructors (eid) VALUES
 (5),
