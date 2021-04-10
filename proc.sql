@@ -569,14 +569,16 @@ AS $$
 BEGIN
     RETURN QUERY
     SELECT Courses.title, Courses.area, Offerings.start_date, Offerings.end_date, Offerings.registration_deadline, Offerings.fees, 
-        (Offerings.seating_capacity - coalesce(Registrations.num_registrations, 0) - coalesce(Redemptions.num_redemptions, 0)) AS remaining_seats
+        (Offerings.seating_capacity - COALESCE(Registrations.num_registrations, 0) - COALESCE(Redemptions.num_redemptions, 0) + COALESCE(Cancellations.num_cancellations)) AS remaining_seats
     FROM Courses NATURAL JOIN Offerings
         NATURAL LEFT OUTER JOIN (SELECT course_id, launch_date, count(*)::INT AS num_registrations 
                         FROM Registers GROUP BY course_id, launch_date) AS Registrations
         NATURAL LEFT OUTER JOIN (SELECT course_id, launch_date, count(*)::INT AS num_redemptions 
                         FROM Redeems GROUP BY course_id, launch_date) AS Redemptions
+        NATURAL LEFT OUTER JOIN (SELECT course_id, launch_date, count(*)::INT AS num_cancellations 
+                        FROM Redeems GROUP BY course_id, launch_date) AS Cancellations
     WHERE Offerings.registration_deadline >= NOW()
-    AND (coalesce(num_registrations, 0) + coalesce(Redemptions.num_redemptions, 0)) < Offerings.seating_capacity
+    AND (COALESCE(Registrations.num_registrations, 0) + COALESCE(Redemptions.num_redemptions, 0) - COALESCE(Cancellations.num_cancellations, 0)) < Offerings.seating_capacity
     ORDER BY Offerings.registration_deadline, Courses.title;
 END
 $$ LANGUAGE plpgsql;
