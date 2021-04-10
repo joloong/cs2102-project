@@ -1,8 +1,8 @@
 -- CS2102 Project Team 41 proc.sql
 
 -- Routine Tracker
--- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
--- TODO: 26, 27, 28, 29, 30
+-- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
+-- TODO: 28, 29, 30
 
 -- 1.
 -- TODO: IF not administrator/manager/instructor
@@ -559,12 +559,12 @@ $$ LANGUAGE plpgsql;
 
 -- 15
 CREATE OR REPLACE FUNCTION get_available_course_offerings()
-RETURNS TABLE (title TEXT, area TEXT, start_date DATE, end_date DATE, registration_deadline DATE, fees INT, remaining_seats INT)
+RETURNS TABLE (title TEXT, area TEXT, launch_date DATE, start_date DATE, end_date DATE, registration_deadline DATE, fees INT, remaining_seats INT)
 AS $$
 BEGIN
     RETURN QUERY
-    SELECT Courses.title, Courses.area, Offerings.start_date, Offerings.end_date, Offerings.registration_deadline, Offerings.fees, 
-        (Offerings.seating_capacity - COALESCE(Registrations.num_registrations, 0) - COALESCE(Redemptions.num_redemptions, 0) + COALESCE(Cancellations.num_cancellations)) AS remaining_seats
+    SELECT Courses.title, Courses.area, Offerings.launch_date, Offerings.start_date, Offerings.end_date, Offerings.registration_deadline, Offerings.fees, 
+        (Offerings.seating_capacity - coalesce(Registrations.num_registrations, 0) - coalesce(Redemptions.num_redemptions, 0)) AS remaining_seats
     FROM Courses NATURAL JOIN Offerings
         NATURAL LEFT OUTER JOIN (SELECT course_id, launch_date, count(*)::INT AS num_registrations 
                         FROM Registers GROUP BY course_id, launch_date) AS Registrations
@@ -1037,6 +1037,105 @@ BEGIN
         VALUES (eid, NOW(), salary_paid, num_work_hours, num_work_days);
         
         RETURN NEXT;
+    END LOOP;
+    CLOSE curs;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 26.
+CREATE OR REPLACE FUNCTION promote_courses ()
+RETURNS TABLE (cust_id INT, cust_name text, area text, course_id INT, title text, launch_date DATE, registration_deadline DATE, fees INT)
+AS $$
+BEGIN
+    RETURN QUERY
+    WITH Inactive_customers AS (
+        SELECT cust_id, cust_name, cc_number
+        FROM Customers NATURAL JOIN Owns
+        EXCEPT
+        SELECT cust_id, cust_name, cc_number
+        FROM (Customers NATURAL JOIN Owns) NATURAL JOIN Registers
+        GROUP BY cust_id, cust_name, cc_number
+        HAVING MAX(reg_date) >= (NOW() - INTERVAL '6 MONTHS')
+        EXCEPT
+        SELECT cust_id, cust_name, cc_number
+        FROM (Customers NATURAL JOIN Owns) NATURAL JOIN Redeems
+        GROUP BY cust_id, cust_name, cc_number
+        HAVING MAX(redeem_date) >= (NOW() - INTERVAL '6 MONTHS')
+    ),
+    Customers_with_interests AS (
+        SELECT * 
+        FROM (
+            SELECT cust_id, cust_name, area, ROW_NUMBER() OVER (
+                PARTITION BY cust_id, cust_name
+                ORDER BY cust_id, cust_name, reg_date
+            ) AS row_index
+            FROM (
+                SELECT cust_id, cust_name, area, reg_date
+                FROM Inactive_customers NATURAL JOIN (Courses NATURAL JOIN Registers)
+                UNION
+                SELECT cust_id, cust_name, area, redeem_date as reg_date
+                FROM Inactive_customers NATURAL JOIN (Courses NATURAL JOIN Redeems)              
+            )
+        )
+        WHERE row_index <= 3
+    ),
+    Customers_without_interests AS (
+        SELECT cust_id, cust_name
+        FROM Inactive_customers
+        EXCEPT
+        SELECT cust_id, cust_name
+        FROM Customers_with_interests
+    ),
+    Customers_interests AS (
+        SELECT DISTINCT cust_id, cust_name, area 
+        FROM Customers_with_interests
+        UNION
+        SELECT DISTINCT cust_id, cust_name, area
+        FROM Customers_without_interests, Course_Areas
+    )
+    SELECT cust_id, cust_name, area, course_id, title, launch_date, registration_deadline, fees
+    FROM Customers_interests NATURAL LEFT JOIN (Courses NATURAL JOIN get_available_course_offerings())
+    ORDER BY cust_id, registration_deadline;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 27.
+CREATE OR REPLACE FUNCTION top_packages (N INT)
+RETURNS TABLE (package_id INT, num_free_registrations INT, price INT, sale_start_date DATE, sale_end_date DATE, num_sold INT)
+AS $$
+DECLARE
+    curs CURSOR FOR (
+        SELECT P.package_id, P.num_free_registrations, P.price, P.sale_start_date, P.sale_end_date, (
+            SELECT COUNT(*) 
+            FROM Buys B
+            WHERE B.package_id = P.package_id
+        ) AS num_sold
+        FROM Packages P
+        WHERE EXTRACT(YEAR FROM P.sale_start_date) = EXTRACT(YEAR FROM NOW())
+        ORDER BY num_sold DESC, P.price DESC
+    );
+    r RECORD;
+    counter INT;
+    prev_num_sold INT;
+BEGIN
+    counter := 0
+    OPEN curs;
+    LOOP
+        FETCH curs into r;
+        EXIT WHEN NOT FOUND;
+        IF counter < N OR r.num_sold = prev_num_sold THEN
+            counter := counter + 1;
+            prev_num_sold := r.num_sold;
+            package_id := r.package_id;
+            num_free_registrations := r.num_free_registrations;
+            price := r.price;
+            sale_start_date := r.sale_start_date;
+            sale_end_date := r.sale_end_date;
+            num_sold := r.num_sold;
+            RETURN NEXT;
+        ELSE
+            EXIT;
+        END IF;
     END LOOP;
     CLOSE curs;
 END;
