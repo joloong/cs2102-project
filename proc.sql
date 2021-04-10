@@ -871,7 +871,7 @@ BEGIN
         Sessions.launch_date = update_room.launch_date AND
         Sessions.sid = update_room.sid;
 
-    IF NOW() < session_start_date OR (NOW() == session_start_date AND EXTRACT(HOUR from current_time) < session_start_time) THEN
+    IF NOW() < session_start_date OR (NOW() = session_start_date AND EXTRACT(HOUR from current_time) < session_start_time) THEN
         SELECT COUNT(*) INTO num_registrations
         FROM Registers
         WHERE Registers.course_id = update_room.course_id AND
@@ -921,7 +921,7 @@ BEGIN
         Sessions.launch_date = remove_session.launch_date AND
         Sessions.sid = remove_session.sid;
 
-    IF NOW() < session_start_date OR (NOW() == session_start_date AND EXTRACT(HOUR from current_time) < session_start_time) THEN
+    IF NOW() < session_start_date OR (NOW() = session_start_date AND EXTRACT(HOUR from current_time) < session_start_time) THEN
         SELECT COUNT(*) INTO num_registrations
         FROM Registers
         WHERE Registers.course_id = remove_session.course_id AND
