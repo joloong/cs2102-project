@@ -308,6 +308,8 @@ CREATE TABLE IF NOT EXISTS Cancels (
     course_id       integer,
     launch_date     date,
     cust_id         integer,
+    refund_amt      integer,
+    package_credit  integer,
 
     primary key (
         cancel_date, sid, course_id, launch_date, cust_id

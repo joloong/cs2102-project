@@ -1,8 +1,8 @@
 -- CS2102 Project Team 41 proc.sql
 
 -- Routine Tracker
--- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 21, 22, 23, 24, 25
--- TODO: 10, 15, 20, 26, 27, 28, 29, 30
+-- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27
+-- TODO: 10, 15, 20, 28, 29, 30
 
 -- 1.
 -- TODO: IF not administrator/manager/instructor
@@ -898,6 +898,50 @@ BEGIN
     CLOSE curs;
 END;
 $$ LANGUAGE plpgsql;
+
+-- 26.
+
+-- 27.
+CREATE OR REPLACE FUNCTION top_packages (N INT)
+RETURNS TABLE (package_id INT, num_free_registrations INT, price INT, sale_start_date DATE, sale_end_date DATE, num_sold INT)
+AS $$
+DECLARE
+    curs CURSOR FOR (
+        SELECT P.package_id, P.num_free_registrations, P.price, P.sale_start_date, P.sale_end_date, (
+            SELECT COUNT(*) 
+            FROM Buys B
+            WHERE B.package_id = P.package_id
+        ) AS num_sold
+        FROM Packages P
+        WHERE EXTRACT(YEAR FROM P.sale_start_date) = EXTRACT(YEAR FROM NOW())
+        ORDER BY num_sold DESC, P.price DESC
+    );
+    r RECORD;
+    counter INT;
+    prev_num_sold INT;
+BEGIN
+    counter := 0
+    OPEN curs;
+    LOOP
+        FETCH curs into r;
+        EXIT WHEN NOT FOUND;
+        IF counter < N OR r.num_sold = prev_num_sold THEN
+            counter := counter + 1;
+            prev_num_sold := r.num_sold;
+            package_id := r.package_id;
+            num_free_registrations := r.num_free_registrations;
+            price := r.price;
+            sale_start_date := r.sale_start_date;
+            sale_end_date := r.sale_end_date;
+            num_sold := r.num_sold;
+            RETURN NEXT;
+        ELSE
+            EXIT;
+        END IF;
+    END LOOP;
+    CLOSE curs;
+END;
+$$ LANGUAGE sql;
 
 -- For Testing
 -- CALL add_employee('Employee1', 'Singapore', '98385373', 'employee1@u.nus.edu', '300', NULL, '2021-01-02', 'administrator', '{}');
