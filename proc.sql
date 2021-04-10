@@ -1338,13 +1338,70 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 30.
-CREATE OR REPLACE FUNCTION compute_net_registration_fees (in_eid INT) 
-RETURNS TABLE(course_id INT, fee INT) 
-AS $$
+CREATE OR REPLACE function view_manager_report() RETURNS TABLE(name text, num_areas int, num_offerings int, total_fees INT, titles text) as $$
+DECLARE
+    cursA CURSOR FOR (
+        SELECT E.name, E.eid
+        FROM Managers M, Employees E
+        WHERE M.eid = E.eid
+        ORDER by E.name);
+    r RECORD;
+    n INT;
+BEGIN
+    OPEN cursA;
+    LOOP
+        FETCH cursA INTO r;
+        EXIT WHEN NOT FOUND;
+        n := (WITH C2 AS (
+                SELECT * FROM compute_net_registration_fees(r.eid))
+            SELECT COUNT(*)
+            FROM Courses C1, C2
+            WHERE (C1.course_id = C2.course_id)
+            AND (C2.fee = (
+                SELECT MAX(fee) FROM C2)));
+        IF n = 0 THEN
+            n := 1;
+        END IF;
+
+        LOOP
+            EXIT WHEN n = 0;
+            name := r.name;
+            num_areas := (SELECT COUNT(*)
+                                FROM Course_areas C
+                                WHERE C.eid = r.eid);
+            num_offerings := (SELECT COUNT(*)
+                                    FROM Course_areas CA, Courses C, Offerings O
+                                    WHERE (CA.eid = r.eid)
+                                    AND (C.area = CA.area)
+                                    AND (O.course_id = C.course_id)
+                                    AND ((SELECT DATE_PART('year', O.end_date)) = (SELECT DATE_PART('year', NOW()))));
+            total_fees := (WITH c AS (
+                            SELECT *
+                            FROM compute_net_registration_fees(r.eid))
+                        SELECT SUM(c.fee)
+                        FROM c);
+
+            titles := (WITH C2 AS (SELECT * FROM compute_net_registration_fees(r.eid))
+                               SELECT C1.title
+                               FROM Courses C1, C2
+                               WHERE (C1.course_id = C2.course_id)
+                               AND (C2.fee = (SELECT MAX(fee) FROM C2))
+                               OFFSET (n - 1)
+                               LIMIT 1);
+            RETURN NEXT;
+            n := n - 1;
+        END LOOP;
+    END LOOP;
+    CLOSE cursA;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Helper function
+CREATE OR REPLACE FUNCTION compute_net_registration_fees (in_eid INT) RETURNS TABLE(course_id INT, fee INT) AS $$
 DECLARE
     curs CURSOR for (
-        SELECT C.course_id 
-        FROM Courses C, Course_areas CA 
+        SELECT C.course_id
+        FROM Courses C, Course_areas CA
         WHERE (CA.area = C.area) AND (CA.eid = in_eid)
     );
     re RECORD;
@@ -1364,7 +1421,8 @@ BEGIN
             AND (S.launch_date = O.launch_date)
             AND (R.sid = S.sid)), 0)
         )
-        - (SELECT coalesce((
+        -
+        (SELECT coalesce((
             SELECT SUM(CL.refund_amt)
             FROM Offerings O, Sessions S, Cancels CL
             WHERE (O.course_id = re.course_id)
@@ -1373,7 +1431,8 @@ BEGIN
             AND (S.launch_date = O.launch_date)
             AND (CL.sid = S.sid)), 0)
         )
-        + (SELECT coalesce((
+        +
+        (SELECT coalesce((
             SELECT SUM(CP.price / CP.num_free_registrations)
             FROM Offerings O, Sessions S, Course_packages CP, Redeems R
             WHERE (O.course_id = re.course_id)
@@ -1388,64 +1447,6 @@ BEGIN
     CLOSE curs;
 END;
 $$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE function view_manager_report() RETURNS TABLE(name text, num_areas int, num_offerings int, total_fees INT, titles text) as $$
-DECLARE
-  cursA CURSOR FOR (
-      SELECT E.name, E.eid
-      FROM Managers M, Employees E
-      WHERE M.eid = E.eid
-      ORDER by E.name);
-  r RECORD;
-  n INT;
-BEGIN
-  OPEN cursA;
-  LOOP
-    FETCH cursA INTO r;
-    EXIT WHEN NOT FOUND;
-    n := (WITH C2 AS (
-            SELECT * FROM compute_net_registration_fees(r.eid))
-        SELECT COUNT(*)
-        FROM Courses C1, C2
-        WHERE (C1.course_id = C2.course_id)
-        AND (C2.fee = (
-            SELECT MAX(fee) FROM C2)));
-    IF n = 0 THEN
-        n := 1;
-    END IF;
-
-    LOOP
-        EXIT WHEN n = 0;
-        name := r.name;
-        num_areas := (SELECT COUNT(*)
-                            FROM Course_areas C
-                            WHERE C.eid = r.eid);
-        num_offerings := (SELECT COUNT(*)
-                                FROM Course_areas CA, Courses C, Offerings O
-                                WHERE (CA.eid = r.eid)
-                                AND (C.area = CA.area)
-                                AND (O.course_id = C.course_id)
-                                AND ((SELECT DATE_PART('year', O.end_date)) = (SELECT DATE_PART('year', NOW()))));
-        total_fees := (WITH c AS (
-                        SELECT *
-                        FROM compute_net_registration_fees(r.eid))
-                    SELECT SUM(c.fee)
-                    FROM c);
-
-        titles := (WITH C2 AS (SELECT * FROM compute_net_registration_fees(r.eid))
-                           SELECT C1.title
-                           FROM Courses C1, C2
-                           WHERE (C1.course_id = C2.course_id)
-                           AND (C2.fee = (SELECT MAX(fee) FROM C2))
-                           OFFSET (n - 1)
-                           LIMIT 1);
-        RETURN NEXT;
-        n := n - 1;
-    END LOOP;
-  END LOOP;
-  CLOSE cursA;
-END;
-$$ language plpgsql;
 
 -- For Testing
 -- CALL add_employee('Employee1', 'Singapore', '98385373', 'employee1@u.nus.edu', '300', NULL, '2021-01-02', 'administrator', '{}');
