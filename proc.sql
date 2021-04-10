@@ -1326,6 +1326,8 @@ BEGIN
 
         RETURN NEXT;
     END LOOP;
+END;
+$$ LANGUAGE plpgsql;
 
 -- For Testing
 -- CALL add_employee('Employee1', 'Singapore', '98385373', 'employee1@u.nus.edu', '300', NULL, '2021-01-02', 'administrator', '{}');

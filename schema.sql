@@ -693,7 +693,18 @@ BEGIN
                 AND Buys.package_id = buys_package_id;
         END IF;
     ELSIF latest_registered_date > latest_redeemed_date THEN -- Registered
+        IF cancelled_session_date - NEW.cancel_date >= 7 THEN
+            SELECT o.fees
+            INTO course_fees
+            FROM Sessions s JOIN Offerings o
+                ON s.launch_date = o.launch_date
+                    AND s.course_id = o.course_id
+            WHERE s.sid = NEW.sid
+                AND s.course_id = NEW.course_id
+                AND s.launch_date = NEW.launch_date;
 
+            NEW.refund_amt := 0.9 * course_fees;
+        END IF;
     ELSE -- Redeemed
         IF cancelled_session_date - NEW.cancel_date >= 7 THEN
             NEW.package_credit := 1;
