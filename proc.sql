@@ -1318,9 +1318,9 @@ BEGIN
 
         SELECT COALESCE(COUNT(*), 0) INTO total_redeems
         FROM (
-            SELECT DATE_PART('MONTH', R.redeem_date) AS redeem_month, 
-                   DATE_PART('YEAR', R.redeem_date) AS redeem_year
-            FROM Redeems R
+            SELECT DATE_PART('MONTH', RD.redeem_date) AS redeem_month, 
+                   DATE_PART('YEAR', RD.redeem_date) AS redeem_year
+            FROM Redeems RD
         ) Redemptions
         WHERE Redemptions.redeem_month = curs_month AND Redemptions.redeem_year = curs_year;
 
