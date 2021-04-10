@@ -235,7 +235,7 @@ BEGIN
     WHERE Redeems.transaction_date = last_transaction_date
         AND Redeems.cc_number = NEW.cc_number
         AND Redeems.package_id = last_package_id
-        AND Sessions.session_date - NOW() >= 7;
+        AND Sessions.session_date - NOW()::date >= 7;
 
     IF num_cancellable_sessions >= 1 THEN
         RAISE EXCEPTION 'There is a partially active course package.';
