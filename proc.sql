@@ -1403,13 +1403,13 @@ BEGIN
   LOOP
     FETCH curs INTO r;
     EXIT WHEN NOT FOUND;
-    n := WITH C2 AS (
+    n := (WITH C2 AS (
             SELECT * FROM compute_net_registration_fees(r.eid))
         SELECT COUNT(*)
         FROM Courses C1, C2
         WHERE (C1.course_id = C2.course_id)
         AND (C2.fee = (
-            SELECT MAX(fee) FROM C2));
+            SELECT MAX(fee) FROM C2)));
     IF n = 0 THEN
         n := 1;
     END IF;
@@ -1417,16 +1417,16 @@ BEGIN
     LOOP
         EXIT WHEN n = 0;
         name := r.name;
-        num_areas := SELECT COUNT(*)
+        num_areas := (SELECT COUNT(*)
                             FROM Course_areas C
-                            WHERE C.eid = r.eid;
-        num_offerings := SELECT COUNT(*)
+                            WHERE C.eid = r.eid);
+        num_offerings := (SELECT COUNT(*)
                                 FROM Course_areas CA, Courses C, Offerings O
-                                WHERE CA.eid = r.eid
-                                AND C.area = CA.area
-                                AND O.course_id = C.course_id
-                                AND (select DATE_PART('year', O.end_date)) = (select DATE_PART('year', NOW())) ;
-        total_fees := WITH c AS (
+                                WHERE (CA.eid = r.eid)
+                                AND (C.area = CA.area)
+                                AND (O.course_id = C.course_id)
+                                AND ((SELECT DATE_PART('year', O.end_date)) = (SELECT DATE_PART('year', NOW()))));
+        total_fees := (WITH c AS (
                         SELECT *
                         FROM compute_net_registration_fees(r.eid))
                     SELECT SUM(c.fee)
@@ -1445,7 +1445,7 @@ BEGIN
   END LOOP;
   CLOSE curs;
 END;
-$$ LANGUAGE plpgsql;
+$$ language plpgsql;
 
 -- For Testing
 -- CALL add_employee('Employee1', 'Singapore', '98385373', 'employee1@u.nus.edu', '300', NULL, '2021-01-02', 'administrator', '{}');
