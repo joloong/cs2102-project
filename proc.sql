@@ -1330,7 +1330,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 30
-CREATE OR REPLACE FUNCTION view_manager_report() RETURNS TABLE(name TEXT, num_areas INTEGER, num_offerings INTEGER, total_registration_fees INT, titles TEXT[]) AS $$
+CREATE OR REPLACE FUNCTION view_manager_report() 
+RETURNS TABLE(name TEXT, num_areas INTEGER, num_offerings INTEGER, total_registration_fees INT, titles TEXT[]) AS $$
 DECLARE
     curs CURSOR FOR (
         SELECT Manager.eid, Manager.name
@@ -1413,14 +1414,15 @@ BEGIN
             SELECT course_id, launch_date, co_registration_fees + co_redemption_fees AS co_total_fees
             FROM RegistrationFees
                 NATURAL JOIN RedemptionFees)
-        SELECT ARRAY(
-            SELECT C1.title
-            FROM (TotalRegistrationFees
-                NATURAL JOIN Courses) C1
-            WHERE C1.co_total_fees = (
-                SELECT MAX(C2.co_total_fees)
-                FROM TotalRegistrationFees C2)
-        ) INTO titles;
+        SELECT array_agg(C1.title) INTO titles
+        FROM (TotalRegistrationFees
+            NATURAL JOIN Courses) C1
+        WHERE C1.co_total_fees =
+            (SELECT MAX(C2.co_total_fees)
+        FROM TotalRegistrationFees C2);
+
+        RETURN NEXT;
+
     END LOOP;
     CLOSE curs;
 END;
