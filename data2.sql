@@ -91,16 +91,16 @@ CALL add_course('Title9', 'Description9', 'Area5', 1);
 CALL add_course('Title10', 'Description10', 'Area6', 2);
 
 -- Add to Course_offerings and Sessions
-CALL add_course_offering(1, 100, '2021-01-01', '2021-04-10', 50, 26, ARRAY['2021-06-01', '2021-06-01', '2021-06-01', '2021-06-02', '2021-06-02']::date[], '{9, 15, 16, 9, 15}', '{1, 1, 1, 1, 1}');
+CALL add_course_offering(1, 100, '2021-01-01', '2021-04-20', 50, 26, ARRAY['2021-06-01', '2021-06-01', '2021-06-01', '2021-06-02', '2021-06-02']::date[], '{9, 15, 16, 9, 15}', '{1, 1, 1, 1, 1}');
 CALL add_course_offering(1, 200, '2021-02-01', '2021-05-11', 40, 27, ARRAY['2021-07-01', '2021-07-01', '2021-07-01', '2021-07-15']::date[], '{10, 14, 15, 9}', '{1, 1, 1, 1}');
 CALL add_course_offering(1, 300, '2021-03-01', '2021-06-10', 30, 28, ARRAY['2021-08-01', '2021-08-02', '2021-08-03']::date[], '{15, 16, 17}', '{1, 1, 1}');
-CALL add_course_offering(2, 200, '2021-01-01', '2021-04-10', 100, 29, ARRAY['2021-06-01', '2021-06-01', '2021-06-01', '2021-06-15', '2021-07-15']::date[], '{9, 10, 14, 9, 10}', '{2, 3, 2, 1, 2}');
+CALL add_course_offering(2, 200, '2021-01-01', '2021-04-20', 100, 29, ARRAY['2021-06-01', '2021-06-01', '2021-06-01', '2021-06-15', '2021-07-15']::date[], '{9, 10, 14, 9, 10}', '{2, 3, 2, 1, 2}');
 CALL add_course_offering(2, 300, '2021-02-01', '2021-05-11', 60, 30, ARRAY['2021-07-01', '2021-07-01', '2021-07-02']::date[], '{15, 16, 9}', '{2, 3, 1}');
-CALL add_course_offering(3, 100, '2021-01-01', '2021-04-10', 70, 31, ARRAY['2021-06-01', '2021-06-01']::date[], '{9, 15}', '{4, 3}');
-CALL add_course_offering(4, 100, '2021-01-01', '2021-04-10', 80, 32, ARRAY['2021-06-01', '2021-06-02', '2021-06-03', '2021-06-04']::date[], '{14, 14, 14, 14}', '{4, 2, 1, 1}');
+CALL add_course_offering(3, 100, '2021-01-01', '2021-04-20', 70, 31, ARRAY['2021-06-01', '2021-06-01']::date[], '{9, 15}', '{4, 3}');
+CALL add_course_offering(4, 100, '2021-01-01', '2021-04-20', 80, 32, ARRAY['2021-06-01', '2021-06-02', '2021-06-03', '2021-06-04']::date[], '{14, 14, 14, 14}', '{4, 2, 1, 1}');
 CALL add_course_offering(5, 200, '2021-02-01', '2021-05-11', 40, 33, ARRAY['2021-07-01']::date[], '{15}', '{4}');
 CALL add_course_offering(5, 300, '2021-03-01', '2021-06-10', 80, 34, ARRAY['2021-08-01', '2021-08-02', '2021-08-03', '2021-09-01', '2021-09-30']::date[], '{15, 16, 17, 9, 9}', '{2, 2, 2, 1, 1}');
-CALL add_course_offering(6, 100, '2021-01-01', '2021-04-10', 170, 35, ARRAY['2021-06-01', '2021-06-01', '2021-06-02', '2021-06-02', '2021-06-03', '2021-06-03']::date[], '{9, 15, 9, 15, 9, 15}', '{5, 5, 2, 3, 1, 2}');
+CALL add_course_offering(6, 100, '2021-01-01', '2021-04-20', 170, 35, ARRAY['2021-06-01', '2021-06-01', '2021-06-02', '2021-06-02', '2021-06-03', '2021-06-03']::date[], '{9, 15, 9, 15, 9, 15}', '{5, 5, 2, 3, 1, 2}');
 
 -- Add to Buys
 CALL buy_course_package (1, 1);
@@ -115,57 +115,62 @@ CALL buy_course_package (9, 3);
 CALL buy_course_package (10, 6);
 
 -- Add to Registers and Redeems
+-- Add to Registers and Redeems
 CALL register_session(1, 1, '2021-01-01', 1, 'credit_card');
-CALL register_session(1, 2, '2021-02-01', 1, 'credit_card');
--- CALL register_session(1, 3, '2021-03-01', 1, 'credit_card');
--- CALL register_session(1, 5, '2021-01-01', 2, 'credit_card');
--- CALL register_session(1, 3, '2021-02-01', 2, 'credit_card');
-CALL register_session(1, 1, '2021-01-01', 3, 'credit_card');
+CALL register_session(1, 1, '2021-02-01', 2, 'credit_card');
+CALL register_session(1, 1, '2021-03-01', 3, 'credit_card');
+CALL register_session(1, 2, '2021-01-01', 5, 'credit_card');
+CALL register_session(1, 2, '2021-02-01', 3, 'credit_card');
+CALL register_session(1, 3, '2021-01-01', 1, 'credit_card');
 CALL register_session(1, 4, '2021-01-01', 4, 'credit_card');
--- CALL register_session(1, 1, '2021-02-01', 5, 'credit_card');
--- CALL register_session(1, 1, '2021-03-01', 5, 'credit_card');
-CALL register_session(2, 3, '2021-01-01', 1, 'credit_card');
--- CALL register_session(2, 3, '2021-03-01', 1, 'credit_card');
-CALL register_session(2, 4, '2021-01-01', 2, 'credit_card');
+CALL register_session(1, 5, '2021-02-01', 1, 'credit_card');
+CALL register_session(1, 5, '2021-03-01', 1, 'credit_card');
+
+CALL register_session(2, 1, '2021-01-01', 3, 'credit_card');
+CALL register_session(2, 1, '2021-03-01', 3, 'credit_card');
+CALL register_session(2, 2, '2021-01-01', 4, 'credit_card');
 CALL register_session(2, 2, '2021-02-01', 2, 'credit_card');
 CALL register_session(2, 4, '2021-01-01', 4, 'credit_card');
--- CALL register_session(2, 1, '2021-02-01', 5, 'credit_card');
--- CALL register_session(2, 2, '2021-03-01', 5, 'credit_card');
--- CALL register_session(2, 4, '2021-01-01', 6, 'credit_card');
--- CALL register_session(3, 5, '2021-01-01', 2, 'credit_card');
--- CALL register_session(3, 3, '2021-02-01', 2, 'credit_card');
-CALL register_session(3, 2, '2021-01-01', 3, 'credit_card');
+CALL register_session(2, 5, '2021-02-01', 1, 'credit_card');
+CALL register_session(2, 5, '2021-03-01', 2, 'credit_card');
+CALL register_session(2, 6, '2021-01-01', 4, 'credit_card');
+
+CALL register_session(3, 2, '2021-01-01', 5, 'credit_card');
+CALL register_session(3, 2, '2021-02-01', 3, 'credit_card');
+CALL register_session(3, 3, '2021-01-01', 2, 'credit_card');
 CALL register_session(3, 4, '2021-01-01', 4, 'credit_card');
--- CALL register_session(5, 2, '2021-03-01', 1, 'credit_card');
--- CALL register_session(6, 3, '2021-03-01', 1, 'credit_card');
--- CALL register_session(8, 3, '2021-03-01', 1, 'credit_card');
+
+CALL register_session(5, 1, '2021-03-01', 2, 'credit_card');
+CALL register_session(6, 1, '2021-03-01', 3, 'credit_card');
+CALL register_session(8, 1, '2021-03-01', 3, 'credit_card');
 CALL register_session(8, 2, '2021-01-01', 2, 'credit_card');
-CALL register_session(10, 1, '2021-01-01', 2, 'credit_card');
+CALL register_session(10, 2, '2021-01-01', 1, 'credit_card');
 
 CALL register_session(1, 6, '2021-01-01', 6, 'package');
 CALL register_session(2, 1, '2021-02-01', 1, 'package');
-CALL register_session(2, 1, '2021-01-01', 3, 'package');
-CALL register_session(3, 2, '2021-01-01', 1, 'package');
--- CALL register_session(3, 4, '2021-02-01', 1, 'package');
--- CALL register_session(3, 3, '2021-03-01', 1, 'package');
--- CALL register_session(5, 1, '2021-02-01', 5, 'package');
--- CALL register_session(5, 4, '2021-01-01', 6, 'package');
-CALL register_session(5, 2, '2021-01-01', 4, 'package');
--- CALL register_session(5, 1, '2021-03-01', 5, 'package');
--- CALL register_session(6, 1, '2021-02-01', 5, 'package');
+CALL register_session(2, 3, '2021-01-01', 1, 'package');
+CALL register_session(3, 1, '2021-01-01', 2, 'package');
+CALL register_session(3, 1, '2021-02-01', 4, 'package');
+CALL register_session(3, 1, '2021-03-01', 3, 'package');
+
+CALL register_session(5, 5, '2021-02-01', 1, 'package');
+CALL register_session(5, 6, '2021-01-01', 4, 'package');
+CALL register_session(5, 4, '2021-01-01', 2, 'package');
+CALL register_session(5, 5, '2021-03-01', 1, 'package');
+CALL register_session(6, 5, '2021-02-01', 1, 'package');
 CALL register_session(6, 4, '2021-01-01', 4, 'package');
--- CALL register_session(8, 1, '2021-02-01', 5, 'package');
--- CALL register_session(8, 2, '2021-03-01', 5, 'package');
--- CALL register_session(10, 1, '2021-03-01', 5, 'package');
+CALL register_session(8, 5, '2021-02-01', 1, 'package');
+CALL register_session(8, 5, '2021-03-01', 2, 'package');
+CALL register_session(10, 5, '2021-03-01', 1, 'package');
 
 -- Add to Cancels
--- CALL cancel_registration(1, 1, '2021-01-01');
--- CALL cancel_registration(1, 1, '2021-02-01');
--- CALL cancel_registration(1, 6, '2021-01-01');
--- CALL cancel_registration(2, 2, '2021-02-01');
--- CALL cancel_registration(2, 1, '2021-02-01');
--- CALL cancel_registration(2, 5, '2021-02-01');
--- CALL cancel_registration(3, 1, '2021-03-01');
--- CALL cancel_registration(5, 4, '2021-01-01');
--- CALL cancel_registration(10, 2,  '2021-01-01');
--- CALL cancel_registration(10, 5,  '2021-03-01');
+CALL cancel_registration(1, 1, '2021-01-01');
+CALL cancel_registration(1, 1, '2021-02-01');
+CALL cancel_registration(1, 6, '2021-01-01');
+CALL cancel_registration(2, 2, '2021-02-01');
+CALL cancel_registration(2, 1, '2021-02-01');
+CALL cancel_registration(2, 5, '2021-02-01');
+CALL cancel_registration(3, 1, '2021-03-01');
+CALL cancel_registration(5, 4, '2021-01-01');
+CALL cancel_registration(10, 2,  '2021-01-01');
+CALL cancel_registration(10, 5,  '2021-03-01');

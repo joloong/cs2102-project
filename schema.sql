@@ -660,7 +660,7 @@ BEGIN
         AND s.course_id = NEW.course_id
         AND s.launch_date = NEW.launch_date;
 
-    IF num_redeemed == 0 THEN -- Registered
+    IF num_redeemed = 0 THEN -- Registered
         IF cancelled_session_date - NEW.cancel_date >= 7 THEN
             SELECT o.fees
             INTO course_fees
@@ -673,7 +673,7 @@ BEGIN
 
             NEW.refund_amt := 0.9 * course_fees;
         END IF;
-    ELSIF num_registered == 0 THEN -- Redeemed
+    ELSIF num_registered = 0 THEN -- Redeemed
         IF cancelled_session_date - NEW.cancel_date >= 7 THEN
             NEW.package_credit := 1;
 
@@ -687,7 +687,7 @@ BEGIN
                 AND Redeems.redeem_date = latest_redeemed_date;
 
             UPDATE Buys
-            SET Buys.num_remaining_registrations = Buys.num_remaining_registrations + 1
+            SET num_remaining_registrations = num_remaining_registrations + 1
             WHERE Buys.transaction_date = buys_transaction_date
                 AND Buys.cc_number = cust_cc_number
                 AND Buys.package_id = buys_package_id;
@@ -708,7 +708,7 @@ BEGIN
                 AND Redeems.redeem_date = latest_redeemed_date;
 
             UPDATE Buys
-            SET Buys.num_remaining_registrations = Buys.num_remaining_registrations + 1
+            SET num_remaining_registrations = num_remaining_registrations + 1
             WHERE Buys.transaction_date = buys_transaction_date
                 AND Buys.cc_number = cust_cc_number
                 AND Buys.package_id = buys_package_id;
