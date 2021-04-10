@@ -559,7 +559,7 @@ $$ LANGUAGE plpgsql;
 
 -- 15
 CREATE OR REPLACE FUNCTION get_available_course_offerings()
-RETURNS TABLE (title TEXT, area TEXT, launch_date DATE, start_date DATE, end_date DATE, registration_deadline DATE, fees INT, remaining_seats INT)
+RETURNS TABLE (title TEXT, area TEXT, launchDate DATE, start_date DATE, end_date DATE, registration_deadline DATE, fees INT, remaining_seats INT)
 AS $$
 BEGIN
     RETURN QUERY
@@ -966,7 +966,11 @@ BEGIN
         IF valid_instructor AND valid_room THEN
             INSERT INTO Sessions (sid, course_id, launch_date, session_date, start_time, end_time, rid, eid)
             VALUES (sid, course_id, launch_date, session_date, start_time, start_time + course_duration, rid, eid);
+        ELSE
+            RAISE EXCEPTION 'Instructor / Room is not valid';
         END IF;
+    ELSE
+        RAISE EXCEPTION 'Registration is over';
     END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -988,7 +992,7 @@ BEGIN
         FETCH curs INTO r;
         EXIT WHEN NOT FOUND;
 
-        IF r.eid IN (SELECT eid FROM Part_time_Emp) THEN
+        IF r.eid IN (SELECT Part_time_Emp.eid FROM Part_time_Emp) THEN
             eid := r.eid;
             name := r.name;
             status = 'part-time';
@@ -1044,7 +1048,7 @@ $$ LANGUAGE plpgsql;
 
 -- 26.
 CREATE OR REPLACE FUNCTION promote_courses ()
-RETURNS TABLE (cust_id INT, cust_name text, area text, course_id INT, title text, launch_date DATE, registration_deadline DATE, fees INT)
+RETURNS TABLE (customer_id INT, customer_name text, course_area text, courseID INT, course_title text, offering_launch_date DATE, reg_deadline DATE, course_fees INT)
 AS $$
 BEGIN
     RETURN QUERY
@@ -1075,8 +1079,8 @@ BEGIN
                 UNION
                 SELECT cust_id, cust_name, area, redeem_date as reg_date
                 FROM Inactive_customers NATURAL JOIN (Courses NATURAL JOIN Redeems)              
-            )
-        )
+            ) CR
+        ) CR2
         WHERE row_index <= 3
     ),
     Customers_without_interests AS (
@@ -1092,9 +1096,13 @@ BEGIN
         UNION
         SELECT DISTINCT cust_id, cust_name, area
         FROM Customers_without_interests, Course_Areas
+    ),
+    Available_offerings AS (
+        SELECT *
+        FROM get_available_course_offerings()
     )
-    SELECT cust_id, cust_name, area, course_id, title, launch_date, registration_deadline, fees
-    FROM Customers_interests NATURAL LEFT JOIN (Courses NATURAL JOIN get_available_course_offerings())
+    SELECT cust_id, cust_name, area, course_id, title, launchDate, registration_deadline, fees
+    FROM Customers_interests NATURAL LEFT JOIN (Courses NATURAL JOIN Available_offerings)
     ORDER BY cust_id, registration_deadline;
 END;
 $$ LANGUAGE plpgsql;
@@ -1110,7 +1118,7 @@ DECLARE
             FROM Buys B
             WHERE B.package_id = P.package_id
         ) AS num_sold
-        FROM Packages P
+        FROM Course_packages P
         WHERE EXTRACT(YEAR FROM P.sale_start_date) = EXTRACT(YEAR FROM NOW())
         ORDER BY num_sold DESC, P.price DESC
     );
@@ -1118,7 +1126,7 @@ DECLARE
     counter INT;
     prev_num_sold INT;
 BEGIN
-    counter := 0
+    counter := 0;
     OPEN curs;
     LOOP
         FETCH curs into r;
