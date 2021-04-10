@@ -900,6 +900,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 26.
+CREATE OR REPLACE FUNCTION promote_courses ()
+RETURNS TABLE (cust_id INT, cust_name text, )
 
 -- 27.
 CREATE OR REPLACE FUNCTION top_packages (N INT)
