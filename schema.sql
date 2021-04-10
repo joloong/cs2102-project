@@ -330,7 +330,7 @@ BEGIN
     IF NEW.eid NOT IN (SELECT eid FROM Administrators)
     AND NEW.eid NOT IN (SELECT eid FROM Managers)
     AND NEW.eid NOT IN (SELECT eid FROM Full_time_instructors) THEN
-        RAISE EXCEPTION 'A full-time employee must only be either a administrator, a manager or a full-time instructor.';
+        RAISE EXCEPTION 'A full-time employee must be either a administrator, a manager or a full-time instructor.';
     END IF;
     IF (NEW.eid IN (SELECT eid FROM Administrators)
         AND NEW.eid IN (SELECT eid FROM Managers))
