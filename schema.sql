@@ -54,9 +54,9 @@ CREATE TABLE IF NOT EXISTS Part_time_Emp (
 CREATE TABLE IF NOT EXISTS Full_time_Emp (
     eid             integer primary key references Employees
                     on delete cascade,
-    monthly_rate    integer not null
+    monthly_salary    integer not null
 
-    constraint valid_monthly_rate check (monthly_rate >= 0)
+    constraint valid_monthly_salary check (monthly_salary >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS Managers (
@@ -74,9 +74,6 @@ CREATE TABLE IF NOT EXISTS Course_areas (
 CREATE TABLE IF NOT EXISTS Instructors (
     eid     integer     primary key references Employees
                         on delete cascade
-    -- area    text        not null,
-
-    -- foreign key (area) references Course_areas (area)
 );
 
 CREATE TABLE IF NOT EXISTS Part_time_instructors (
@@ -283,7 +280,6 @@ CREATE TABLE IF NOT EXISTS Redeems (
     foreign key (transaction_date, cc_number, package_id) references Buys
 );
 
--- TODO: Trigger to check that user can only cancel sessions that he has registered/redeemed.
 CREATE TABLE IF NOT EXISTS Cancels (
     cancel_date     date,
     sid             integer,
