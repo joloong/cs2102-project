@@ -7,17 +7,17 @@
 -- 1.
 -- TODO: IF not administrator/manager/instructor
 -- Assumptions: Course_areas should exist in the database
-CREATE OR REPLACE PROCEDURE add_employee (name TEXT, address TEXT, phone TEXT, email TEXT, monthly_rate INT, hourly_rate INT, join_date DATE, employee_category TEXT, course_areas TEXT[])
+CREATE OR REPLACE PROCEDURE add_employee (name TEXT, address TEXT, phone TEXT, email TEXT, monthly_salary INT, hourly_rate INT, join_date DATE, employee_category TEXT, course_areas TEXT[])
 AS $$
 DECLARE
     new_eid INT;
     course_area TEXT;
 BEGIN
     -- INPUT VALIDATION
-    IF monthly_rate IS NULL AND hourly_rate IS NULL THEN
+    IF monthly_salary IS NULL AND hourly_rate IS NULL THEN
         RAISE EXCEPTION 'Salary information not supplied.';
     END IF;
-    IF monthly_rate IS NOT NULL AND hourly_rate IS NOT NULL THEN
+    IF monthly_salary IS NOT NULL AND hourly_rate IS NOT NULL THEN
         RAISE EXCEPTION 'Only full-time or part-time salary information is to be supplied.';
     END IF;
 
@@ -45,7 +45,7 @@ BEGIN
     RETURNING eid INTO new_eid;
 
     -- Insert - Specific
-    IF monthly_rate IS NULL AND hourly_rate IS NOT NULL THEN
+    IF monthly_salary IS NULL AND hourly_rate IS NOT NULL THEN
         IF employee_category = 'administrator' THEN
             RAISE EXCEPTION 'Administrators cannot be part time employeees';
         END IF;
@@ -66,9 +66,9 @@ BEGIN
         END IF;
     END IF;
 
-    IF monthly_rate IS NOT NULL AND hourly_rate IS NULL THEN
-        INSERT INTO Full_time_Emp (eid, monthly_rate)
-        VALUES (new_eid, monthly_rate);
+    IF monthly_salary IS NOT NULL AND hourly_rate IS NULL THEN
+        INSERT INTO Full_time_Emp (eid, monthly_salary)
+        VALUES (new_eid, monthly_salary);
 
         IF employee_category = 'administrator' THEN
             INSERT INTO Administrators (eid)
@@ -997,7 +997,7 @@ $$ LANGUAGE plpgsql;
 
 -- 25.
 CREATE OR REPLACE FUNCTION pay_salary()
-RETURNS TABLE(eid INT, name text, status text, num_work_days INT, num_work_hours INT, hourly_rate INT, monthly_rate INT, salary_paid INT)
+RETURNS TABLE(eid INT, name text, status text, num_work_days INT, num_work_hours INT, hourly_rate INT, monthly_salary INT, salary_paid INT)
 AS $$
 DECLARE
     curs CURSOR FOR (SELECT * FROM Employees ORDER BY eid ASC);
@@ -1017,7 +1017,7 @@ BEGIN
             name := r.name;
             status = 'part-time';
             num_work_days := NULL;
-            monthly_rate := NULL;
+            monthly_salary := NULL;
 
             SELECT COALESCE(SUM(ST.duration), 0) INTO num_work_hours
             FROM (Sessions NATURAL JOIN Courses) ST
@@ -1050,11 +1050,11 @@ BEGIN
             END IF;
             num_work_days := last_work_day - first_work_day + 1;
             
-            SELECT FTE.monthly_rate INTO monthly_rate
+            SELECT FTE.monthly_salary INTO monthly_salary
             FROM Full_time_Emp FTE
             WHERE FTE.eid = r.eid;
 
-            salary_paid := CAST(((num_work_days / curr_month_days) * monthly_rate) AS INTEGER);
+            salary_paid := CAST(((num_work_days / curr_month_days) * monthly_salary) AS INTEGER);
         END IF;
 
         INSERT INTO Pay_slips (eid, payment_date, amount, num_work_hours, num_work_days)
