@@ -1,8 +1,8 @@
 -- CS2102 Project Team 41 proc.sql
 
 -- Routine Tracker
--- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
--- TODO: 28, 29, 30
+-- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28
+-- TODO: 30
 
 -- 1.
 -- TODO: IF not administrator/manager/instructor
@@ -24,8 +24,15 @@ BEGIN
     IF employee_category = 'administrator' AND array_length(course_areas, 1) > 0 THEN
         RAISE EXCEPTION 'Set of course areas should be empty for administrators';
     END IF;
-    IF employee_category = 'instructor' AND array_length(course_areas, 1) IS NULL THEN
-        RAISE EXCEPTION 'Set of course areas should not be empty for instructors specialization areas.';
+    IF employee_category = 'instructor' THEN
+        IF array_length(course_areas, 1) IS NULL THEN
+            RAISE EXCEPTION 'Set of course areas should not be empty for instructors specialization areas.';
+        END IF;
+        FOREACH course_area IN ARRAY course_areas LOOP
+            IF (SELECT COUNT(*) FROM Course_areas WHERE Course_areas.area = course_area) = 0 THEN
+                RAISE EXCEPTION 'The new instructor has an specialization area that does not exist';
+            END IF;
+        END LOOP;
     END IF;
     IF employee_category = 'manager' AND array_length(course_areas, 1) IS NULL THEN
         RAISE EXCEPTION 'Set of course areas should not be empty for managers managed areas.';
@@ -70,6 +77,12 @@ BEGIN
         IF employee_category = 'manager' THEN
             INSERT INTO Managers (eid)
             VALUES (new_eid);
+            FOREACH course_area IN ARRAY course_areas LOOP
+                IF (SELECT COUNT(*) FROM Course_areas WHERE Course_areas.area = course_area) = 0 THEN
+                    INSERT INTO Course_areas (area, eid)
+                    VALUES (course_area, new_eid);
+                END IF;
+            END LOOP;
         END IF;
         IF employee_category = 'instructor' THEN
             INSERT INTO Instructors (eid)
@@ -445,17 +458,8 @@ BEGIN
         total_seating_capacity := total_seating_capacity + current_seating_capacity;
     END LOOP;
 
-    current_sid := 1;
     FOR i IN 1..array_length(session_date, 1)
-    LOOP
-        SELECT Available_Instructors.eid INTO current_available_instructor
-        FROM find_instructors(course_id, session_date[i], session_start_hour[i]) Available_Instructors
-        LIMIT 1;
-
-        IF current_available_instructor IS NULL THEN
-            RAISE EXCEPTION 'No instructor available for session on % at %00 hours', session_date[i], session_start_hour[i];
-        END IF;
-
+    LOOP    
         IF start_date IS NULL THEN
             start_date := session_date[i];
         END IF;
@@ -471,13 +475,25 @@ BEGIN
         IF session_date[i] > end_date THEN
             end_date := session_date[i];
         END IF;
+    END LOOP;
+
+    INSERT INTO Offerings (course_id, launch_date, start_date, end_date, registration_deadline, fees, seating_capacity, target_number_registrations, eid)
+    VALUES (course_id, launch_date, start_date, end_date, registration_deadline, fees, total_seating_capacity, target_number_registrations, eid);
+
+    current_sid := 1;
+    FOR i IN 1..array_length(session_date, 1)
+    LOOP
+        SELECT Available_Instructors.eid INTO current_available_instructor
+        FROM find_instructors(course_id, session_date[i], session_start_hour[i]) Available_Instructors
+        LIMIT 1;
+
+        IF current_available_instructor IS NULL THEN
+            RAISE EXCEPTION 'No instructor available for session on % at %00 hours', session_date[i], session_start_hour[i];
+        END IF;
 
         CALL add_session(course_id, launch_date, current_sid, session_date[i], session_start_hour[i], room_id[i], current_available_instructor);
         current_sid := current_sid + 1;
     END LOOP;
-
-    INSERT INTO Offerings (course_id, launch_date, start_date, end_date, registration_deadline, fees, seating_capacity, target_number_registrations, eid)
-    VALUES (course_id, launch_date, start_date, end_date, registration_deadline, fees, total_seating_capacity, target_number_registrations, eid);	
 END;
 $$ LANGUAGE plpgsql;
 
@@ -855,7 +871,7 @@ BEGIN
         Sessions.launch_date = update_room.launch_date AND
         Sessions.sid = update_room.sid;
 
-    IF NOW() < session_start_date OR (NOW() == session_start_date AND EXTRACT(HOUR from current_time) < session_start_time) THEN
+    IF NOW() < session_start_date OR (NOW() = session_start_date AND EXTRACT(HOUR from current_time) < session_start_time) THEN
         SELECT COUNT(*) INTO num_registrations
         FROM Registers
         WHERE Registers.course_id = update_room.course_id AND
@@ -905,7 +921,7 @@ BEGIN
         Sessions.launch_date = remove_session.launch_date AND
         Sessions.sid = remove_session.sid;
 
-    IF NOW() < session_start_date OR (NOW() == session_start_date AND EXTRACT(HOUR from current_time) < session_start_time) THEN
+    IF NOW() < session_start_date OR (NOW() = session_start_date AND EXTRACT(HOUR from current_time) < session_start_time) THEN
         SELECT COUNT(*) INTO num_registrations
         FROM Registers
         WHERE Registers.course_id = remove_session.course_id AND
@@ -1153,6 +1169,94 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+--28.
+CREATE OR REPLACE FUNCTION popular_courses() 
+RETURNS TABLE (course_id INT, title TEXT, area TEXT, num_offerings INT, num_regs_latest_offering INT) AS $$
+DECLARE
+    curs CURSOR FOR (
+        WITH registrations AS (
+            SELECT rg.course_id, rg.launch_date, count(*) AS num_registrations
+            FROM Registers rg
+            GROUP BY rg.course_id, rg.launch_date
+        ),
+        redemptions AS (
+            SELECT rd.course_id, rd.launch_date, count(*) AS num_redemptions
+            FROM Redeems rd
+            GROUP BY rd.course_id, rd.launch_date
+        ),
+        cancellations AS (
+            SELECT c.course_id, c.launch_date, count(*) AS num_cancellations
+            FROM Cancels c
+            GROUP BY c.course_id, c.launch_date
+        ),
+        total_registrations AS (
+            SELECT c.course_id, c.title, c.area, o1.launch_date
+            FROM Courses c NATURAL LEFT OUTER JOIN Offerings o1
+            WHERE EXTRACT(YEAR FROM o1.start_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND (
+                SELECT count(o2.launch_date) > 2
+                FROM Offerings o2
+                WHERE c.course_id = o2.course_id
+            )
+        )
+        SELECT total_registrations.course_id, total_registrations.title, total_registrations.area, total_registrations.launch_date, COALESCE(registrations.num_registrations, 0) + COALESCE(redemptions.num_redemptions, 0) - COALESCE(cancellations.num_cancellations, 0) AS total_registrations
+        FROM total_registrations 
+            NATURAL LEFT OUTER JOIN registrations
+            NATURAL LEFT OUTER JOIN redemptions
+            NATURAL LEFT OUTER JOIN cancellations
+        ORDER BY total_registrations.course_id, total_registrations.launch_date
+    );
+    current_rec RECORD;
+    previous_rec RECORD;
+    is_popular BOOLEAN;
+    num_offerings INT;
+BEGIN
+    num_offerings := 1;
+    is_popular := TRUE;
+
+    OPEN curs;
+    FETCH curs INTO previous_rec;
+    LOOP
+        FETCH curs INTO current_rec;
+        EXIT WHEN NOT FOUND;
+        
+        IF previous_rec.course_id = current_rec.course_id THEN
+            IF previous_rec.total_registrations >= current_rec.total_registrations THEN
+                is_popular := FALSE;
+            ELSE
+                num_offerings := num_offerings + 1;
+            END IF;
+        ELSIF previous_rec.course_id <> current_rec.course_id THEN
+            IF is_popular = TRUE THEN
+                course_id := previous_rec.course_id;
+                title := previous_rec.title;
+                area := previous_rec.area;
+                num_offerings := num_offerings;
+                num_regs_latest_offering := previous_rec.total_registrations;
+                RETURN NEXT;
+                num_offerings := 1;
+            ELSE
+                is_popular := TRUE;
+                num_offerings := 1;
+            END IF;
+        END IF;
+        previous_rec := current_rec;
+    END LOOP;
+    
+    IF is_popular = TRUE THEN
+        popular_courses.course_id := previous_rec.course_id;
+        popular_courses.title := previous_rec.title;
+        popular_courses.area := previous_rec.area;
+
+        popular_courses.num_offerings := num_offerings;
+        popular_courses.num_regs_latest_offering := previous_rec.total_registrations;
+        RETURN NEXT;
+    END IF;
+
+    CLOSE curs;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 29.
 CREATE OR REPLACE FUNCTION view_summary_report (N INT)
 RETURNS TABLE (month_year text, total_salary INT, total_sales INT, total_fees INT, total_refund INT, total_redeems INT)
@@ -1222,9 +1326,6 @@ BEGIN
 
         RETURN NEXT;
     END LOOP;
-    CLOSE curs;
-END;
-$$ LANGUAGE plpgsql;
 
 -- For Testing
 -- CALL add_employee('Employee1', 'Singapore', '98385373', 'employee1@u.nus.edu', '300', NULL, '2021-01-02', 'administrator', '{}');
