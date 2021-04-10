@@ -318,33 +318,105 @@ CREATE OR REPLACE FUNCTION registered_redeemed_before_cancel() RETURNS TRIGGER A
 DECLARE
     cust_cc_number char(20);
     num_registered INT;
+    latest_registered_date date;
+    course_fees INT;
     num_redeemed INT;
+    latest_redeemed_date date;
+    buys_transaction_date date;
+    buys_package_id INT;
+
+    cancelled_session_date date;
 BEGIN
+    NEW.cancel_date := NOW()::date;
+    NEW.refund_amt := 0;
+    NEW.package_credit := 0;
+
     SELECT cc_number INTO cust_cc_number
     FROM Owns
     WHERE Owns.cust_id = NEW.cust_id
     ORDER BY from_date desc
     LIMIT 1;
 
-    SELECT COUNT(*)
-    INTO num_registered
+    SELECT COUNT(*), MAX(reg_date)
+    INTO num_registered, latest_registered_date
     FROM Registers
     WHERE Registers.sid = NEW.sid
         AND Registers.course_id = NEW.course_id
         AND Registers.launch_date = NEW.launch_date
         AND Registers.cc_number = cust_cc_number;
 
-    SELECT COUNT(*)
-    INTO num_redeemed
+    SELECT COUNT(*), MAX(redeem_date)
+    INTO num_redeemed, latest_redeemed_date
     FROM Redeems
     WHERE Redeems.sid = NEW.sid
         AND Redeems.course_id = NEW.course_id
         AND Redeems.launch_date = NEW.launch_date
         AND Redeems.cc_number = cust_cc_number;
-
     IF num_registered + num_redeemed = 0 THEN
         RAISE EXCEPTION 'Session has not been registered or redeemed by user.';
         RETURN NULL;
+    END IF;
+
+    SELECT session_date
+    INTO cancelled_session_date
+    FROM Sessions s
+    WHERE s.sid = NEW.sid
+        AND s.course_id = NEW.course_id
+        AND s.launch_date = NEW.launch_date;
+
+    IF num_redeemed == 0 THEN -- Registered
+        IF cancelled_session_date - NEW.cancel_date >= 7 THEN
+            SELECT o.fees
+            INTO course_fees
+            FROM Sessions s JOIN Offerings o
+                ON s.launch_date = o.launch_date
+                    AND s.course_id = o.course_id
+            WHERE s.sid = NEW.sid
+                AND s.course_id = NEW.course_id
+                AND s.launch_date = NEW.launch_date;
+
+            NEW.refund_amt := 0.9 * course_fees;
+        END IF;
+    ELSIF num_registered == 0 THEN -- Redeemed
+        IF cancelled_session_date - NEW.cancel_date >= 7 THEN
+            NEW.package_credit := 1;
+
+            SELECT transaction_date, package_id
+            INTO buys_transaction_date, buys_package_id
+            FROM Redeems
+            WHERE Redeems.sid = NEW.sid
+                AND Redeems.course_id = NEW.course_id
+                AND Redeems.launch_date = NEW.launch_date
+                AND Redeems.cc_number = cust_cc_number
+                AND Redeems.redeem_date = latest_redeemed_date;
+
+            UPDATE Buys
+            SET Buys.num_remaining_registrations = Buys.num_remaining_registrations + 1
+            WHERE Buys.transaction_date = buys_transaction_date
+                AND Buys.cc_number = cust_cc_number
+                AND Buys.package_id = buys_package_id;
+        END IF;
+    ELSIF latest_registered_date > latest_redeemed_date THEN -- Registered
+
+    ELSE -- Redeemed
+        IF cancelled_session_date - NEW.cancel_date >= 7 THEN
+            NEW.package_credit := 1;
+
+            SELECT transaction_date, package_id
+            INTO buys_transaction_date, buys_package_id
+            FROM Redeems
+            WHERE Redeems.sid = NEW.sid
+                AND Redeems.course_id = NEW.course_id
+                AND Redeems.launch_date = NEW.launch_date
+                AND Redeems.cc_number = cust_cc_number
+                AND Redeems.redeem_date = latest_redeemed_date;
+
+            UPDATE Buys
+            SET Buys.num_remaining_registrations = Buys.num_remaining_registrations + 1
+            WHERE Buys.transaction_date = buys_transaction_date
+                AND Buys.cc_number = cust_cc_number
+                AND Buys.package_id = buys_package_id;
+        END IF;
     END IF;
 
     RETURN NEW;

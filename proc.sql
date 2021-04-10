@@ -170,8 +170,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 6.
-
--- Note: _session_start_hour should be a number in 24 hrs format, e.g. 4pm will be 16.
+/*
+Note: _session_start_hour should be a number in 24 hrs format, e.g. 4pm will be 16.
+*/
 CREATE OR REPLACE FUNCTION find_instructors (_course_identifier INT, _session_date DATE, _session_start_hour INT)
 RETURNS TABLE (eid INT, name text)
 AS $$
@@ -395,13 +396,8 @@ $$ LANGUAGE plpgsql;
 
 -- 10. 
 /*
-Note to whoever is doing this function:
-
-For routine number 10 (add_course_offering), there's a missing input parameter for the target number of registrations. The second sentence should read:
-
 The inputs to the routine include the following: course offering identifier, course identifier, course fees, launch date, registration deadline,  target number of registrations, administrator’s identifier, and information for each session (session date, session start hour, and room identifier).
 */
-
 CREATE OR REPLACE PROCEDURE add_course_offering(course_id INT, fees INT, launch_date DATE, registration_deadline DATE, target_number_registrations INT, eid INT, session_date DATE[], session_start_hour INT[], room_id INT[])
 AS $$
 DECLARE
@@ -562,7 +558,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 15
-
 CREATE OR REPLACE FUNCTION get_available_course_offerings()
 RETURNS TABLE (title TEXT, area TEXT, launch_date DATE, start_date DATE, end_date DATE, registration_deadline DATE, fees INT, remaining_seats INT)
 AS $$
@@ -575,8 +570,10 @@ BEGIN
                         FROM Registers GROUP BY course_id, launch_date) AS Registrations
         NATURAL LEFT OUTER JOIN (SELECT course_id, launch_date, count(*)::INT AS num_redemptions 
                         FROM Redeems GROUP BY course_id, launch_date) AS Redemptions
+        NATURAL LEFT OUTER JOIN (SELECT course_id, launch_date, count(*)::INT AS num_cancellations 
+                        FROM Redeems GROUP BY course_id, launch_date) AS Cancellations
     WHERE Offerings.registration_deadline >= NOW()
-    AND (coalesce(num_registrations, 0) + coalesce(Redemptions.num_redemptions, 0)) < Offerings.seating_capacity
+    AND (COALESCE(Registrations.num_registrations, 0) + COALESCE(Redemptions.num_redemptions, 0) - COALESCE(Cancellations.num_cancellations, 0)) < Offerings.seating_capacity
     ORDER BY Offerings.registration_deadline, Courses.title;
 END
 $$ LANGUAGE plpgsql;

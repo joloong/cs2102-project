@@ -1,28 +1,9 @@
 -- CS2102 Project Team 41 schema.sql
 
--- DONE:
--- ENTITIES:
--- Pay_slips, Employees, Instructors, Administrators, Managers,
--- Part_time_Emp, Full_time_Emp, Part_time_instructors, Full_time_instructors,
--- Customers, Credit_cards, Course_packages,
--- Courses, Sessions, Offerings,
--- Rooms, Course_areas
-
--- RELATIONS:
--- Owns, Buys, Registers, Redeems, Cancels
-
--- NOT DONE:
--- ENTITIES:
---
--- 
--- RELATIONS
---
-
 /*
 CONSTRAINT THAT CANNOT BE COVERED:
     - If user registers/redeems the same session that he cancelled.
 */ 
-
 
 DROP TABLE IF EXISTS Part_time_Emp CASCADE;
 DROP TABLE IF EXISTS Employees CASCADE;
@@ -44,6 +25,7 @@ DROP TABLE IF EXISTS Offerings CASCADE;
 DROP TABLE IF EXISTS Sessions CASCADE;
 DROP TABLE IF EXISTS Registers CASCADE;
 DROP TABLE IF EXISTS Redeems CASCADE;
+DROP TABLE IF EXISTS Rooms CASCADE;
 DROP TABLE IF EXISTS Cancels CASCADE;
 DROP TABLE IF EXISTS Specializes CASCADE;
 

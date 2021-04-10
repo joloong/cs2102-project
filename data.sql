@@ -24,21 +24,6 @@ DELETE FROM Registers;
 DELETE FROM Redeems;
 DELETE FROM Cancels;
 
-/*
-INSERT INTO Credit_cards (cc_number, cvv, expiry_date) VALUES
-(1234567891011121, 123, '2013-06-01');
-
-INSERT INTO Customers (cust_name, address, phone, email) VALUES
-('Joel', 'CCK', '81234567', 'joel@cs2102.com');
-
-    eid             SERIAL primary key,
-    name            text not null,
-    phone           text not null,
-    email           text not null,
-    join_date       date not null,
-    address         text not null,
-    depart_date     date
-*/
 
 INSERT INTO Employees (eid, name, phone, email, join_date, address, depart_date) VALUES
 (1, 'Alice', '90991044', 'alice@cs2102.com', '1999-01-08', '10 Heng Mui Keng Terrace', null),
