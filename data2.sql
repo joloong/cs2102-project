@@ -157,3 +157,15 @@ CALL register_session(6, 4, '2021-01-01', 4, 'package');
 CALL register_session(8, 1, '2021-02-01', 5, 'package');
 CALL register_session(8, 2, '2021-03-01', 5, 'package');
 CALL register_session(10, 1, '2021-03-01', 5, 'package');
+
+-- Add to Cancels
+CALL cancel_registration(1, 1, '2021-01-01');
+CALL cancel_registration(1, 1, '2021-02-01');
+CALL cancel_registration(1, 6, '2021-01-01');
+CALL cancel_registration(2, 2, '2021-02-01');
+CALL cancel_registration(2, 1, '2021-02-01');
+CALL cancel_registration(2, 5, '2021-02-01');
+CALL cancel_registration(3, 1, '2021-03-01');
+CALL cancel_registration(5, 4, '2021-01-01');
+CALL cancel_registration(10, 2,  '2021-01-01');
+CALL cancel_registration(10, 5,  '2021-03-01');
