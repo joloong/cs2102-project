@@ -1337,8 +1337,110 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 30.
+CREATE OR REPLACE FUNCTION compute_net_registration_fees (in_eid INT) 
+RETURNS TABLE(course_id INT, fee INT) 
+AS $$
+DECLARE
+    curs CURSOR for (
+        SELECT C.course_id 
+        FROM Courses C, Course_areas CA 
+        WHERE (CA.area = C.area) AND (CA.eid = in_eid)
+    );
+    re RECORD;
+BEGIN
+    OPEN curs;
+    LOOP
+        FETCH curs INTO re;
+        EXIT WHEN NOT FOUND;
+
+        course_id := re.course_id;
+        fee := (SELECT coalesce((
+            SELECT SUM(O.fees)
+            FROM Offerings O, Sessions S, Registers R
+            WHERE (O.course_id = re.course_id)
+            AND ((SELECT DATE_PART('year', O.end_date)) = (SELECT DATE_PART('year', NOW())))
+            AND (S.course_id = O.course_id)
+            AND (S.launch_date = O.launch_date)
+            AND (R.sid = S.sid)), 0)
+        )
+        - (SELECT coalesce((
+            SELECT SUM(CL.refund_amt)
+            FROM Offerings O, Sessions S, Cancels CL
+            WHERE (O.course_id = re.course_id)
+            AND ((SELECT DATE_PART('year', O.end_date)) = (SELECT DATE_PART('year', NOW())))
+            AND (S.course_id = O.course_id)
+            AND (S.launch_date = O.launch_date)
+            AND (CL.sid = S.sid)), 0)
+        )
+        + (SELECT coalesce((
+            SELECT SUM(CP.price / CP.num_free_registrations)
+            FROM Offerings O, Sessions S, Course_packages CP, Redeems R
+            WHERE (O.course_id = re.course_id)
+            AND ((SELECT DATE_PART('year', O.end_date)) = (SELECT DATE_PART('year', NOW())))
+            AND (S.course_id = O.course_id)
+            AND (S.launch_date = O.launch_date)
+            AND (R.sid = S.sid)
+            AND (R.package_id = CP.package_id)), 0)
+        );
+        RETURN NEXT;
+    END LOOP;
+    CLOSE curs;
+END;
+$$ LANGUAGE plpgsql;
+
+create or replace function view_manager_report() returns table(mname text, num_course_areas int, num_course_offerings int, total_net_fee integer, offering_title text) as $$
+declare
+  curs1 cursor for (select E.name, E.eid from Managers M, Employees E where M.eid = E.eid order by E.name);
+  r record;
+  n int;
+begin
+  open curs1;
+  loop
+    fetch curs1 into r;
+    exit when not found;
+    n := (with X as (select * from compute_net_registration_fees(r.eid))
+          select count(*)
+          from Courses C, X
+          where (C.course_id = X.course_id)
+          and (X.fee = (select MAX(fee) from X)));
+    if n = 0 then
+      n := 1;
+    end if;
+    loop
+      exit when n = 0;
+      mname := r.name;
+      num_course_areas := (select count(*)
+                           from Course_areas C
+                           where C.eid = r.eid);
+      num_course_offerings := (select count(*)
+                               from Course_areas CA, Courses C, Offerings O
+                               where (CA.eid = r.eid)
+                               and (C.area = CA.area)
+                               and (O.course_id = C.course_id)
+                               and ((select DATE_PART('year', O.end_date)) = (select DATE_PART('year', NOW()))) );
+      total_net_fee := (with X as (select * from compute_net_registration_fees(r.eid))
+                        select SUM(X.fee)
+                        from X);
+
+      offering_title := (with X as (select * from compute_net_registration_fees(r.eid))
+                         select C.title
+                         from Courses C, X
+                         where (C.course_id = X.course_id)
+                         and (X.fee = (select MAX(fee) from X))
+                         offset (n - 1)
+                         limit 1);
+      return next;
+      n := n - 1;
+    end loop;
+
+  end loop;
+  close curs1;
+end;
+$$ language plpgsql;
+
 -- 30
-CREATE OR REPLACE FUNCTION view_manager_report()
+CREATE OR REPLACE FUNCTION view_manager_report_2() 
 RETURNS TABLE(name TEXT, num_areas INTEGER, num_offerings INTEGER, total_registration_fees INT, titles TEXT[]) AS $$
 DECLARE
     curs CURSOR FOR (
@@ -1358,11 +1460,11 @@ BEGIN
         name := r.name;
 
         -- Count areas managed
-        SELECT COALESCE(COUNT(*), 0) 
-        INTO num_areas 
-        FROM Course_areas a 
-        WHERE r.eid = a.eid;
-        
+        SELECT COALESCE(COUNT(*), 0)
+        INTO num_areas
+        FROM Course_areas CA
+        WHERE r.eid = CA.eid;
+
         -- Count course offerings managed (that ended this year)
         SELECT COALESCE(COUNT(*), 0) INTO num_offerings 
         FROM (Courses 
