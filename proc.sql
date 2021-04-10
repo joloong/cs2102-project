@@ -1330,11 +1330,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 30
-CREATE OR REPLACE FUNCTION view_manager_report() 
+CREATE OR REPLACE FUNCTION view_manager_report()
 RETURNS TABLE(name TEXT, num_areas INTEGER, num_offerings INTEGER, total_registration_fees INT, titles TEXT[]) AS $$
 DECLARE
     curs CURSOR FOR (
-        SELECT Manager.eid, Manager.name
+        SELECT Manager.eid, Manager.name 
         FROM (Managers NATURAL JOIN Employees) Manager
         ORDER BY Manager.name ASC
         );
@@ -1350,37 +1350,37 @@ BEGIN
         name := r.name;
 
         -- Count areas managed
-        SELECT COALESCE(COUNT(*), 0)
-        INTO num_areas
-        FROM Course_areas a
+        SELECT COALESCE(COUNT(*), 0) 
+        INTO num_areas 
+        FROM Course_areas a 
         WHERE r.eid = a.eid;
-
+        
         -- Count course offerings managed (that ended this year)
-        SELECT COALESCE(COUNT(*), 0) INTO num_offerings
-        FROM (Courses
-            NATURAL JOIN Offerings
+        SELECT COALESCE(COUNT(*), 0) INTO num_offerings 
+        FROM (Courses 
+            NATURAL JOIN Offerings 
             NATURAL JOIN Course_areas) co
         WHERE r.eid = co.eid
         AND EXTRACT(YEAR FROM co.end_date) = EXTRACT(YEAR FROM CURRENT_DATE);
 
         -- Calculate nett registration fees
         SELECT COALESCE(SUM(reg.fees), 0) INTO registration_fees
-        FROM (Registers
-            NATURAL JOIN Courses
-            NATURAL JOIN Offerings
+        FROM (Registers 
+            NATURAL JOIN Courses 
+            NATURAL JOIN Offerings 
             NATURAL JOIN Course_areas) reg
         WHERE r.eid = reg.eid
         AND EXTRACT(YEAR FROM reg.end_date) = EXTRACT(YEAR FROM CURRENT_DATE);
-
+        
         -- Calculate nett redemption fees
         WITH PackagePrices AS(
-            SELECT package_id, FLOOR(price / num_free_registrations) AS price_per_session
-            FROM Course_packages)
+            SELECT package_id, FLOOR(price / num_free_registrations) AS price_per_session 
+            FROM Course_packages)        
         SELECT COALESCE(SUM(red.price_per_session), 0) INTO redemption_fees
-        FROM (Redeems
+        FROM (Redeems 
             NATURAL JOIN PackagePrices
-            NATURAL JOIN Courses
-            NATURAL JOIN Course_areas
+            NATURAL JOIN Courses 
+            NATURAL JOIN Course_areas 
             NATURAL JOIN Offerings) red
         WHERE r.eid = red.eid
         AND EXTRACT(YEAR FROM red.end_date) = EXTRACT(YEAR FROM CURRENT_DATE);
@@ -1390,15 +1390,15 @@ BEGIN
         WITH
         RegistrationFees AS(
             SELECT reg.course_id, reg.launch_date, COALESCE(SUM(reg.fees), 0) AS co_registration_fees
-            FROM (Registers
-                NATURAL JOIN Offerings
-                NATURAL JOIN Courses
+            FROM (Registers 
+                NATURAL JOIN Offerings 
+                NATURAL JOIN Courses 
                 NATURAL JOIN Course_areas) reg
             WHERE r.eid = reg.eid
             AND EXTRACT(YEAR FROM reg.end_date) = EXTRACT(YEAR FROM CURRENT_DATE)
             GROUP BY reg.course_id, reg.launch_date),
         PackagePrices AS(
-            SELECT package_id, FLOOR (price / num_free_registrations) AS price_per_session
+            SELECT package_id, FLOOR (price / num_free_registrations) AS price_per_session 
             FROM Course_packages),
         RedemptionFees AS(
             SELECT red.course_id, red.launch_date, COALESCE(SUM(red.price_per_session), 0) AS co_redemption_fees
@@ -1412,17 +1412,17 @@ BEGIN
             GROUP BY red.course_id, red.launch_date),
         TotalRegistrationFees AS(
             SELECT course_id, launch_date, co_registration_fees + co_redemption_fees AS co_total_fees
-            FROM RegistrationFees
+            FROM RegistrationFees 
                 NATURAL JOIN RedemptionFees)
-        SELECT array_agg(C1.title) INTO titles
-        FROM (TotalRegistrationFees
-            NATURAL JOIN Courses) C1
-        WHERE C1.co_total_fees =
-            (SELECT MAX(C2.co_total_fees)
-        FROM TotalRegistrationFees C2);
-
+        SELECT ARRAY(
+            SELECT C1.title
+            FROM (TotalRegistrationFees
+                NATURAL JOIN Courses) C1
+            WHERE C1.co_total_fees = (
+                SELECT MAX(C2.co_total_fees) 
+                FROM TotalRegistrationFees C2)
+        ) INTO titles;
         RETURN NEXT;
-
     END LOOP;
     CLOSE curs;
 END;
