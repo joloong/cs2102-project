@@ -1389,152 +1389,61 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-create or replace function view_manager_report() returns table(mname text, num_course_areas int, num_course_offerings int, total_net_fee integer, offering_title text) as $$
-declare
-  curs1 cursor for (select E.name, E.eid from Managers M, Employees E where M.eid = E.eid order by E.name);
-  r record;
-  n int;
-begin
-  open curs1;
-  loop
-    fetch curs1 into r;
-    exit when not found;
-    n := (with X as (select * from compute_net_registration_fees(r.eid))
-          select count(*)
-          from Courses C, X
-          where (C.course_id = X.course_id)
-          and (X.fee = (select MAX(fee) from X)));
-    if n = 0 then
-      n := 1;
-    end if;
-    loop
-      exit when n = 0;
-      mname := r.name;
-      num_course_areas := (select count(*)
-                           from Course_areas C
-                           where C.eid = r.eid);
-      num_course_offerings := (select count(*)
-                               from Course_areas CA, Courses C, Offerings O
-                               where (CA.eid = r.eid)
-                               and (C.area = CA.area)
-                               and (O.course_id = C.course_id)
-                               and ((select DATE_PART('year', O.end_date)) = (select DATE_PART('year', NOW()))) );
-      total_net_fee := (with X as (select * from compute_net_registration_fees(r.eid))
-                        select SUM(X.fee)
-                        from X);
-
-      offering_title := (with X as (select * from compute_net_registration_fees(r.eid))
-                         select C.title
-                         from Courses C, X
-                         where (C.course_id = X.course_id)
-                         and (X.fee = (select MAX(fee) from X))
-                         offset (n - 1)
-                         limit 1);
-      return next;
-      n := n - 1;
-    end loop;
-
-  end loop;
-  close curs1;
-end;
-$$ language plpgsql;
-
--- 30
-CREATE OR REPLACE FUNCTION view_manager_report_2() 
-RETURNS TABLE(name TEXT, num_areas INTEGER, num_offerings INTEGER, total_registration_fees INT, titles TEXT[]) AS $$
+CREATE OR REPLACE function view_manager_report() RETURNS TABLE(name text, num_areas int, num_offerings int, total_fees INT, titles text) as $$
 DECLARE
-    curs CURSOR FOR (
-        SELECT Manager.eid, Manager.name 
-        FROM (Managers NATURAL JOIN Employees) Manager
-        ORDER BY Manager.name ASC
-        );
-    r RECORD;
-    registration_fees INTEGER;
-    redemption_fees INTEGER;
+  curs CURSOR FOR (
+      SELECT E.name, E.eid
+      FROM Managers M, Employees E
+      WHERE M.eid = E.eid
+      ORDER by E.name);
+  r RECORD;
+  n INT;
 BEGIN
-    OPEN curs;
+  OPEN curs;
+  LOOP
+    FETCH curs INTO r;
+    EXIT WHEN NOT FOUND;
+    n := WITH C2 AS (
+            SELECT * FROM compute_net_registration_fees(r.eid))
+        SELECT COUNT(*)
+        FROM Courses C1, C2
+        WHERE (C1.course_id = C2.course_id)
+        AND (C2.fee = (
+            SELECT MAX(fee) FROM C2));
+    IF n = 0 THEN
+        n := 1;
+    END IF;
+
     LOOP
-        FETCH curs INTO r;
-        EXIT WHEN NOT FOUND;
-
+        EXIT WHEN n = 0;
         name := r.name;
+        num_areas := SELECT COUNT(*)
+                            FROM Course_areas C
+                            WHERE C.eid = r.eid;
+        num_offerings := SELECT COUNT(*)
+                                FROM Course_areas CA, Courses C, Offerings O
+                                WHERE CA.eid = r.eid
+                                AND C.area = CA.area
+                                AND O.course_id = C.course_id
+                                AND (select DATE_PART('year', O.end_date)) = (select DATE_PART('year', NOW())) ;
+        total_fees := WITH c AS (
+                        SELECT *
+                        FROM compute_net_registration_fees(r.eid))
+                    SELECT SUM(c.fee)
+                    FROM c);
 
-        -- Count areas managed
-        SELECT COALESCE(COUNT(*), 0)
-        INTO num_areas
-        FROM Course_areas CA
-        WHERE r.eid = CA.eid;
-
-        -- Count course offerings managed (that ended this year)
-        SELECT COALESCE(COUNT(*), 0) INTO num_offerings 
-        FROM (Courses 
-            NATURAL JOIN Offerings 
-            NATURAL JOIN Course_areas) co
-        WHERE r.eid = co.eid
-        AND EXTRACT(YEAR FROM co.end_date) = EXTRACT(YEAR FROM CURRENT_DATE);
-
-        -- Calculate nett registration fees
-        SELECT COALESCE(SUM(reg.fees), 0) INTO registration_fees
-        FROM (Registers 
-            NATURAL JOIN Courses 
-            NATURAL JOIN Offerings 
-            NATURAL JOIN Course_areas) reg
-        WHERE r.eid = reg.eid
-        AND EXTRACT(YEAR FROM reg.end_date) = EXTRACT(YEAR FROM CURRENT_DATE);
-        
-        -- Calculate nett redemption fees
-        WITH PackagePrices AS(
-            SELECT package_id, FLOOR(price / num_free_registrations) AS price_per_session 
-            FROM Course_packages)        
-        SELECT COALESCE(SUM(red.price_per_session), 0) INTO redemption_fees
-        FROM (Redeems 
-            NATURAL JOIN PackagePrices
-            NATURAL JOIN Courses 
-            NATURAL JOIN Course_areas 
-            NATURAL JOIN Offerings) red
-        WHERE r.eid = red.eid
-        AND EXTRACT(YEAR FROM red.end_date) = EXTRACT(YEAR FROM CURRENT_DATE);
-
-        total_registration_fees := registration_fees + redemption_fees;
-
-        WITH
-        RegistrationFees AS(
-            SELECT reg.course_id, reg.launch_date, COALESCE(SUM(reg.fees), 0) AS co_registration_fees
-            FROM (Registers 
-                NATURAL JOIN Offerings 
-                NATURAL JOIN Courses 
-                NATURAL JOIN Course_areas) reg
-            WHERE r.eid = reg.eid
-            AND EXTRACT(YEAR FROM reg.end_date) = EXTRACT(YEAR FROM CURRENT_DATE)
-            GROUP BY reg.course_id, reg.launch_date),
-        PackagePrices AS(
-            SELECT package_id, FLOOR (price / num_free_registrations) AS price_per_session 
-            FROM Course_packages),
-        RedemptionFees AS(
-            SELECT red.course_id, red.launch_date, COALESCE(SUM(red.price_per_session), 0) AS co_redemption_fees
-            FROM (Redeems
-                NATURAL JOIN PackagePrices
-                NATURAL JOIN Courses
-                NATURAL JOIN Course_areas
-                NATURAL JOIN Offerings) red
-            WHERE r.eid = red.eid
-            AND EXTRACT(YEAR FROM red.end_date) = EXTRACT(YEAR FROM CURRENT_DATE)
-            GROUP BY red.course_id, red.launch_date),
-        TotalRegistrationFees AS(
-            SELECT course_id, launch_date, co_registration_fees + co_redemption_fees AS co_total_fees
-            FROM RegistrationFees 
-                NATURAL JOIN RedemptionFees)
-        SELECT ARRAY(
-            SELECT C1.title
-            FROM (TotalRegistrationFees
-                NATURAL JOIN Courses) C1
-            WHERE C1.co_total_fees = (
-                SELECT MAX(C2.co_total_fees) 
-                FROM TotalRegistrationFees C2)
-        ) INTO titles;
+        titles := (WITH C2 AS (SELECT * FROM compute_net_registration_fees(r.eid))
+                           SELECT C1.title
+                           FROM Courses C1, C2
+                           WHERE (C1.course_id = C2.course_id)
+                           AND (C2.fee = (SELECT MAX(fee) FROM C2))
+                           OFFSET (n - 1)
+                           LIMIT 1);
         RETURN NEXT;
+        n := n - 1;
     END LOOP;
-    CLOSE curs;
+  END LOOP;
+  CLOSE curs;
 END;
 $$ LANGUAGE plpgsql;
 
