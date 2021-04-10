@@ -967,7 +967,11 @@ BEGIN
             INSERT INTO Sessions (sid, course_id, launch_date, session_date, start_time, end_time, rid, eid)
             VALUES (sid, course_id, launch_date, session_date, start_time, start_time + course_duration, rid, eid);
         ELSE
-            RAISE EXCEPTION 'Instructor / Room is not valid';
+            IF NOT valid_instructor THEN
+                RAISE EXCEPTION 'Invalid Instructor';
+            ELSE
+                RAISE EXCEPTION 'Invalid Room';
+            END IF;
         END IF;
     ELSE
         RAISE EXCEPTION 'Registration is over';
@@ -1144,6 +1148,79 @@ BEGIN
         ELSE
             EXIT;
         END IF;
+    END LOOP;
+    CLOSE curs;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 29.
+CREATE OR REPLACE FUNCTION view_summary_report (N INT)
+RETURNS TABLE (month_year text, total_salary INT, total_sales INT, total_fees INT, total_refund INT, total_redeems INT)
+AS $$
+DECLARE
+    curs CURSOR FOR (
+        SELECT generate_series AS m_y
+        FROM generate_series ((NOW() - (N - 1) * INTERVAL '1 MONTH')::timestamp, NOW()::timestamp, '1 MONTH')
+        ORDER BY m_y DESC
+    );
+    r RECORD;
+    curs_month INT;
+    curs_year INT;
+BEGIN
+    OPEN curs;
+    LOOP
+        FETCH curs INTO r;
+        EXIT WHEN NOT FOUND;
+
+        month_year := to_char(r.m_y, 'Month YYYY');
+        curs_month := DATE_PART('MONTH', r.m_y);
+        curs_year := DATE_PART('YEAR', r.m_y);
+
+        SELECT COALESCE(SUM(Salary.amount), 0) INTO total_salary
+        FROM (
+            SELECT PS.amount, 
+                   DATE_PART('MONTH', PS.payment_date) AS payment_month, 
+                   DATE_PART('YEAR', PS.payment_date) AS payment_year
+            FROM Pay_slips PS
+        ) Salary
+        WHERE Salary.payment_month = curs_month AND Salary.payment_year = curs_year;
+
+        SELECT COALESCE(SUM(Sales.price), 0) INTO total_sales
+        FROM (
+            SELECT BCP.price, 
+                   DATE_PART('MONTH', BCP.transaction_date) AS transaction_month, 
+                   DATE_PART('YEAR', BCP.transaction_date) AS transaction_year
+            FROM (Buys NATURAL JOIN Course_packages) BCP
+        ) Sales
+        WHERE Sales.transaction_month = curs_month AND Sales.transaction_year = curs_year;
+    
+        SELECT COALESCE(SUM(Registrations.fees), 0) INTO total_fees
+        FROM (
+            SELECT RO.fees, 
+                   DATE_PART('MONTH', RO.reg_date) AS reg_month, 
+                   DATE_PART('YEAR', RO.reg_date) AS reg_year
+            FROM (Registers NATURAL JOIN Offerings) RO
+        ) Registrations
+        WHERE Registrations.reg_month = curs_month AND Registrations.reg_year = curs_year;
+
+        SELECT COALESCE(SUM(Refunds.refund_amt), 0) INTO total_refund
+        FROM (
+            SELECT C.refund_amt, 
+                   DATE_PART('MONTH', C.cancel_date) AS cancel_month, 
+                   DATE_PART('YEAR', C.cancel_date) AS cancel_year
+            FROM Cancels C
+        ) Refunds
+        WHERE Refunds.cancel_month = curs_month AND Refunds.cancel_year = curs_year;
+
+        SELECT COALESCE(COUNT(*), 0) INTO total_redeems
+        FROM (
+            SELECT DATE_PART('MONTH', R.redeem_date) AS redeem_month, 
+                   DATE_PART('YEAR', R.redeem_date) AS redeem_year
+            FROM Redeems R
+        ) Redemptions
+        WHERE Redemptions.redeem_month = curs_month AND Redemptions.redeem_year = curs_year;
+
+        RETURN NEXT;
     END LOOP;
     CLOSE curs;
 END;
