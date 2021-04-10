@@ -1,11 +1,10 @@
 -- CS2102 Project Team 41 proc.sql
 
 -- Routine Tracker
--- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28
+-- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29
 -- TODO: 30
 
 -- 1.
--- TODO: IF not administrator/manager/instructor
 -- Assumptions: Course_areas should exist in the database
 CREATE OR REPLACE PROCEDURE add_employee (name TEXT, address TEXT, phone TEXT, email TEXT, monthly_salary INT, hourly_rate INT, join_date DATE, employee_category TEXT, course_areas TEXT[])
 AS $$
@@ -627,7 +626,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 17. TODO: Implement triggers to check valid
 CREATE OR REPLACE PROCEDURE register_session (cust_id INT, course_id INT, launch_date date, sid INT, payment_method TEXT)
 AS $$
 DECLARE

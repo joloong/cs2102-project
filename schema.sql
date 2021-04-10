@@ -280,7 +280,6 @@ CREATE TABLE IF NOT EXISTS Redeems (
     foreign key (transaction_date, cc_number, package_id) references Buys
 );
 
--- TODO: Trigger to check that user can only cancel sessions that he has registered/redeemed.
 CREATE TABLE IF NOT EXISTS Cancels (
     cancel_date     date,
     sid             integer,
