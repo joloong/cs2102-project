@@ -458,17 +458,8 @@ BEGIN
         total_seating_capacity := total_seating_capacity + current_seating_capacity;
     END LOOP;
 
-    current_sid := 1;
     FOR i IN 1..array_length(session_date, 1)
-    LOOP
-        SELECT Available_Instructors.eid INTO current_available_instructor
-        FROM find_instructors(course_id, session_date[i], session_start_hour[i]) Available_Instructors
-        LIMIT 1;
-
-        IF current_available_instructor IS NULL THEN
-            RAISE EXCEPTION 'No instructor available for session on % at %00 hours', session_date[i], session_start_hour[i];
-        END IF;
-
+    LOOP    
         IF start_date IS NULL THEN
             start_date := session_date[i];
         END IF;
@@ -484,13 +475,25 @@ BEGIN
         IF session_date[i] > end_date THEN
             end_date := session_date[i];
         END IF;
+    END LOOP;
+
+    INSERT INTO Offerings (course_id, launch_date, start_date, end_date, registration_deadline, fees, seating_capacity, target_number_registrations, eid)
+    VALUES (course_id, launch_date, start_date, end_date, registration_deadline, fees, total_seating_capacity, target_number_registrations, eid);
+
+    current_sid := 1;
+    FOR i IN 1..array_length(session_date, 1)
+    LOOP
+        SELECT Available_Instructors.eid INTO current_available_instructor
+        FROM find_instructors(course_id, session_date[i], session_start_hour[i]) Available_Instructors
+        LIMIT 1;
+
+        IF current_available_instructor IS NULL THEN
+            RAISE EXCEPTION 'No instructor available for session on % at %00 hours', session_date[i], session_start_hour[i];
+        END IF;
 
         CALL add_session(course_id, launch_date, current_sid, session_date[i], session_start_hour[i], room_id[i], current_available_instructor);
         current_sid := current_sid + 1;
     END LOOP;
-
-    INSERT INTO Offerings (course_id, launch_date, start_date, end_date, registration_deadline, fees, seating_capacity, target_number_registrations, eid)
-    VALUES (course_id, launch_date, start_date, end_date, registration_deadline, fees, total_seating_capacity, target_number_registrations, eid);	
 END;
 $$ LANGUAGE plpgsql;
 
