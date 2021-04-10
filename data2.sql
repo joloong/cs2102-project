@@ -1,3 +1,15 @@
+INSERT INTO Rooms (seating_capacity, location) VALUES
+(100, 'LT15'),
+(200, 'LT27'),
+(420, 'COM1-0101'),
+(2102, 'COM2-0102'),
+(90, 'AS-27'),
+(150, 'LT19'),
+(15, 'COM1-0201'),
+(15, 'COM2-0202'),
+(100, 'LT16'),
+(69, 'LT69');
+
 -- Add to Customers, Credit_cards and Owns tables
 CALL add_customer ('Amy Chen', 'Block 223 Serangoon Avenue 3 #03-42', '93742483', 'amychen@gmail.com', '4566798466523378', '516', '2028-05-03');
 CALL add_customer ('Ben Davids', '1 University Road #01-02', '93753482', 'ben_davids@gmail.com', '4522616717675333', '222', '2024-04-02');
@@ -90,3 +102,14 @@ CALL add_course_offering(5, 200, '2021-02-01', '2021-05-11', 40, 33, ARRAY['2021
 CALL add_course_offering(5, 300, '2021-03-01', '2021-06-10', 80, 34, ARRAY['2021-08-01', '2021-08-02', '2021-08-03', '2021-09-01', '2021-09-30']::date[], '{15, 16, 17, 9, 9}', '{2, 2, 2, 1, 1}');
 CALL add_course_offering(6, 100, '2021-01-01', '2021-04-10', 170, 35, ARRAY['2021-06-01', '2021-06-01', '2021-06-02', '2021-06-02', '2021-06-03', '2021-06-03']::date[], '{9, 15, 9, 15, 9, 15}', '{5, 5, 2, 3, 1, 2}');
 
+-- Add to Buys
+CALL buy_course_package (1, 1);
+CALL buy_course_package (2, 2);
+CALL buy_course_package (3, 3);
+CALL buy_course_package (4, 4);
+CALL buy_course_package (5, 5);
+CALL buy_course_package (6, 5);
+CALL buy_course_package (7, 5);
+CALL buy_course_package (8, 4);
+CALL buy_course_package (9, 3);
+CALL buy_course_package (10, 6);
