@@ -564,11 +564,11 @@ $$ LANGUAGE plpgsql;
 -- 15
 
 CREATE OR REPLACE FUNCTION get_available_course_offerings()
-RETURNS TABLE (title TEXT, area TEXT, start_date DATE, end_date DATE, registration_deadline DATE, fees INT, remaining_seats INT)
+RETURNS TABLE (title TEXT, area TEXT, launch_date DATE, start_date DATE, end_date DATE, registration_deadline DATE, fees INT, remaining_seats INT)
 AS $$
 BEGIN
     RETURN QUERY
-    SELECT Courses.title, Courses.area, Offerings.start_date, Offerings.end_date, Offerings.registration_deadline, Offerings.fees, 
+    SELECT Courses.title, Courses.area, Offerings.launch_date, Offerings.start_date, Offerings.end_date, Offerings.registration_deadline, Offerings.fees, 
         (Offerings.seating_capacity - coalesce(Registrations.num_registrations, 0) - coalesce(Redemptions.num_redemptions, 0)) AS remaining_seats
     FROM Courses NATURAL JOIN Offerings
         NATURAL LEFT OUTER JOIN (SELECT course_id, launch_date, count(*)::INT AS num_registrations 
@@ -1047,7 +1047,60 @@ $$ LANGUAGE plpgsql;
 
 -- 26.
 CREATE OR REPLACE FUNCTION promote_courses ()
-RETURNS TABLE (cust_id INT, cust_name text, )
+RETURNS TABLE (cust_id INT, cust_name text, area text, course_id INT, title text, launch_date DATE, registration_deadline DATE, fees INT)
+AS $$
+BEGIN
+    RETURN QUERY
+    WITH Inactive_customers AS (
+        SELECT cust_id, cust_name, cc_number
+        FROM Customers NATURAL JOIN Owns
+        EXCEPT
+        SELECT cust_id, cust_name, cc_number
+        FROM (Customers NATURAL JOIN Owns) NATURAL JOIN Registers
+        GROUP BY cust_id, cust_name, cc_number
+        HAVING MAX(reg_date) >= (NOW() - INTERVAL '6 MONTHS')
+        EXCEPT
+        SELECT cust_id, cust_name, cc_number
+        FROM (Customers NATURAL JOIN Owns) NATURAL JOIN Redeems
+        GROUP BY cust_id, cust_name, cc_number
+        HAVING MAX(redeem_date) >= (NOW() - INTERVAL '6 MONTHS')
+    ),
+    Customers_with_interests AS (
+        SELECT * 
+        FROM (
+            SELECT cust_id, cust_name, area, ROW_NUMBER() OVER (
+                PARTITION BY cust_id, cust_name
+                ORDER BY cust_id, cust_name, reg_date
+            ) AS row_index
+            FROM (
+                SELECT cust_id, cust_name, area, reg_date
+                FROM Inactive_customers NATURAL JOIN (Courses NATURAL JOIN Registers)
+                UNION
+                SELECT cust_id, cust_name, area, redeem_date as reg_date
+                FROM Inactive_customers NATURAL JOIN (Courses NATURAL JOIN Redeems)              
+            )
+        )
+        WHERE row_index <= 3
+    ),
+    Customers_without_interests AS (
+        SELECT cust_id, cust_name
+        FROM Inactive_customers
+        EXCEPT
+        SELECT cust_id, cust_name
+        FROM Customers_with_interests
+    ),
+    Customers_interests AS (
+        SELECT DISTINCT cust_id, cust_name, area 
+        FROM Customers_with_interests
+        UNION
+        SELECT DISTINCT cust_id, cust_name, area
+        FROM Customers_without_interests, Course_Areas
+    )
+    SELECT cust_id, cust_name, area, course_id, title, launch_date, registration_deadline, fees
+    FROM Customers_interests NATURAL LEFT JOIN (Courses NATURAL JOIN get_available_course_offerings())
+    ORDER BY cust_id, registration_deadline;
+END;
+$$ LANGUAGE plpgsql;
 
 -- 27.
 CREATE OR REPLACE FUNCTION top_packages (N INT)
@@ -1089,7 +1142,7 @@ BEGIN
     END LOOP;
     CLOSE curs;
 END;
-$$ LANGUAGE sql;
+$$ LANGUAGE plpgsql;
 
 -- For Testing
 -- CALL add_employee('Employee1', 'Singapore', '98385373', 'employee1@u.nus.edu', '300', NULL, '2021-01-02', 'administrator', '{}');
