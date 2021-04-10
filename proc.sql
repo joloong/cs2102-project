@@ -170,8 +170,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 6.
-
--- Note: _session_start_hour should be a number in 24 hrs format, e.g. 4pm will be 16.
+/*
+Note: _session_start_hour should be a number in 24 hrs format, e.g. 4pm will be 16.
+*/
 CREATE OR REPLACE FUNCTION find_instructors (_course_identifier INT, _session_date DATE, _session_start_hour INT)
 RETURNS TABLE (eid INT, name text)
 AS $$
@@ -395,13 +396,8 @@ $$ LANGUAGE plpgsql;
 
 -- 10. 
 /*
-Note to whoever is doing this function:
-
-For routine number 10 (add_course_offering), there's a missing input parameter for the target number of registrations. The second sentence should read:
-
 The inputs to the routine include the following: course offering identifier, course identifier, course fees, launch date, registration deadline,  target number of registrations, administrator’s identifier, and information for each session (session date, session start hour, and room identifier).
 */
-
 CREATE OR REPLACE PROCEDURE add_course_offering(course_id INT, fees INT, launch_date DATE, registration_deadline DATE, target_number_registrations INT, eid INT, session_date DATE[], session_start_hour INT[], room_id INT[])
 AS $$
 DECLARE
@@ -562,7 +558,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 15
-
 CREATE OR REPLACE FUNCTION get_available_course_offerings()
 RETURNS TABLE (title TEXT, area TEXT, start_date DATE, end_date DATE, registration_deadline DATE, fees INT, remaining_seats INT)
 AS $$
