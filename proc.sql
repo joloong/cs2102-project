@@ -1391,7 +1391,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE function view_manager_report() RETURNS TABLE(name text, num_areas int, num_offerings int, total_fees INT, titles text) as $$
 DECLARE
-  curs CURSOR FOR (
+  cursA CURSOR FOR (
       SELECT E.name, E.eid
       FROM Managers M, Employees E
       WHERE M.eid = E.eid
@@ -1399,9 +1399,9 @@ DECLARE
   r RECORD;
   n INT;
 BEGIN
-  OPEN curs;
+  OPEN cursA;
   LOOP
-    FETCH curs INTO r;
+    FETCH cursA INTO r;
     EXIT WHEN NOT FOUND;
     n := (WITH C2 AS (
             SELECT * FROM compute_net_registration_fees(r.eid))
@@ -1443,7 +1443,7 @@ BEGIN
         n := n - 1;
     END LOOP;
   END LOOP;
-  CLOSE curs;
+  CLOSE cursA;
 END;
 $$ language plpgsql;
 
