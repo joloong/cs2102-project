@@ -146,6 +146,50 @@ INSERT INTO Sessions (sid, course_id, launch_date, session_date, start_time, end
 (1, 1, '2021-03-10', '2021-08-10', 14, 16, 1, 4),
 (1, 2, '2021-03-25', '2021-08-10', 16, 18, 2, 1);
 
+INSERT INTO Customers (cust_name, address, phone, email) VALUES
+('Amy Chen', 'Block 223 Serangoon Avenue 3 #03-42', '93742483', 'amychen@gmail.com'),
+('Ben Davids', '1 University Road #01-02', '93753482', 'ben_davids@gmail.com'),
+('Charlie Wong', 'Block 13 Woodlands Close #12-33', '89201483', 'charliew@gmail.com'),
+('Dawn Lim', 'Block 5 Yishun Street 4 #07-224', '93115481', 'dawn_lim_oo@gmail.com'),
+('Evan Ong', 'Block 114 Hougang Street 91 #03-10', '97810030', 'EvanONG@gmail.com'),
+('Faizal Ali', 'Block 11 Tampines East Avenue 9 #08-41', '83722420', 'faizalali@gmail.com'),
+('Govind Raju', 'Block 9 Serangoon North Avenue 1 #04-01', '89722433', 'govindr@gmail.com'),
+('Halimah Wati', 'Block 832 Pasir Ris Street 22 #02-54', '90742284', 'halimahwati@gmail.com'),
+('Ivy Lee', '1 Whampoa Street 1 #01-12', '91122485', 'ivysunshine@gmail.com'),
+('Johnny Wong', 'Block 33 Yishun Ave 33 #07-123', '81922453', 'johnnywong@gmail.com');
+
+
+INSERT INTO Credit_cards (cc_number, cvv, expiry_date) VALUES
+('4566798466523378', '516', '2028-05-03'),
+('4522616717675333', '222', '2024-04-02'),
+('4535569466151528', '884', '2022-02-05'),
+('4566246626377112', '644', '2026-04-06'),
+('4670902211105024', '002', '2029-08-07'),
+('4609801005910630', '051', '2025-07-03'),
+('4612239980177401', '665', '2022-05-02'),
+('4999939288503462', '115', '2024-01-06'),
+('4628987119585235', '012', '2028-02-01'),
+('4889029092342005', '143', '2026-03-05');
+
+INSERT INTO Owns (cc_number, cust_id, from_date) VALUES
+('4566798466523378', 1, '2020-03-03'),
+('4522616717675333', 2, '2020-04-03'),
+('4535569466151528', 3, '2018-02-04'),
+('4566246626377112', 4, '2019-02-09'),
+('4670902211105024', 5, '2018-02-01'),
+('4609801005910630', 6, '2020-08-09'),
+('4612239980177401', 7, '2018-02-01'),
+('4999939288503462', 8, '2019-02-06'),
+('4628987119585235', 9, '2019-05-02'),
+('4889029092342005', 10, '2018-06-03');
+
+INSERT INTO Registers (reg_date, sid, course_id, launch_date, cc_number) VALUES
+('2020-01-03', 1, 1, '2021-03-10', '4566798466523378'),
+('2020-01-03', 1, 2, '2021-03-25', '4566798466523378'),
+('2020-01-03', 1, 1, '2021-03-10', '4522616717675333'),
+('2020-01-03', 1, 1, '2021-03-10', '4535569466151528');
+
 ALTER SEQUENCE Employees_eid_seq RESTART WITH 16;
 ALTER SEQUENCE Rooms_rid_seq RESTART WITH 11;
+ALTER SEQUENCE Courses_course_id_seq RESTART WITH 3;
 -- Remember to add for the other tables that contain SERIAL

@@ -1,8 +1,8 @@
 -- CS2102 Project Team 41 proc.sql
 
 -- Routine Tracker
--- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27
--- TODO: 10, 15, 20, 28, 29, 30
+-- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
+-- TODO: 28, 29, 30
 
 -- 1.
 -- TODO: IF not administrator/manager/instructor
@@ -87,7 +87,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 2.
-CREATE OR REPLACE PROCEDURE remove_employee (eid INTEGER, depart_date DATE) 
+CREATE OR REPLACE PROCEDURE remove_employee (eid INT, depart_date DATE) 
 AS $$
 BEGIN
     IF depart_date IS NULL THEN
@@ -402,6 +402,89 @@ For routine number 10 (add_course_offering), there's a missing input parameter f
 The inputs to the routine include the following: course offering identifier, course identifier, course fees, launch date, registration deadline,  target number of registrations, administrator’s identifier, and information for each session (session date, session start hour, and room identifier).
 */
 
+CREATE OR REPLACE PROCEDURE add_course_offering(course_id INT, fees INT, launch_date DATE, registration_deadline DATE, target_number_registrations INT, eid INT, session_date DATE[], session_start_hour INT[], room_id INT[])
+AS $$
+DECLARE
+    start_date DATE;
+    end_date DATE;
+    course_duration INT;
+    current_available_instructor INT;
+    current_sid INT; -- For a new course offering, session id will start from 1
+    total_seating_capacity INT;
+    current_seating_capacity INT;
+BEGIN
+    IF (add_course_offering.eid NOT IN (SELECT Administrators.eid FROM Administrators)) THEN
+        RAISE EXCEPTION 'Administrator specified does not exist';
+    END IF;
+    IF (add_course_offering.course_id NOT IN (SELECT Courses.course_id FROM Courses)) THEN
+        RAISE EXCEPTION 'Course specified does not exist';
+    END IF;
+    IF (array_length(session_date, 1) IS NULL 
+        OR array_length(session_start_hour, 1) IS NULL 
+        OR array_length(room_id, 1) IS NULL) THEN
+        RAISE EXCEPTION 'Invalid sessions information';
+    END IF;
+    -- Should be same length
+    IF array_length(session_date, 1) <> array_length(session_start_hour, 1)
+        OR array_length(session_date, 1) <> array_length(room_id, 1) 
+        OR array_length(session_start_hour, 1) <> array_length(room_id, 1) THEN
+        RAISE EXCEPTION 'Missing sessions information';
+    END IF;
+    
+    SELECT duration INTO course_duration
+    FROM Courses
+    WHERE Courses.course_id = add_course_offering.course_id; -- use course_id = 1
+    
+    total_seating_capacity := 0;
+    FOR i IN 1..array_length(room_id, 1)
+    LOOP
+        SELECT seating_capacity INTO current_seating_capacity
+        FROM Rooms
+        WHERE rid = room_id[i];
+
+        IF (room_id[i] IS NULL) THEN
+            RAISE EXCEPTION 'Room % is not available', room_id[i];
+        END IF;
+
+        total_seating_capacity := total_seating_capacity + current_seating_capacity;
+    END LOOP;
+
+    current_sid := 1;
+    FOR i IN 1..array_length(session_date, 1)
+    LOOP
+        SELECT Available_Instructors.eid INTO current_available_instructor
+        FROM find_instructors(course_id, session_date[i], session_start_hour[i]) Available_Instructors
+        LIMIT 1;
+
+        IF current_available_instructor IS NULL THEN
+            RAISE EXCEPTION 'No instructor available for session on % at %00 hours', session_date[i], session_start_hour[i];
+        END IF;
+
+        IF start_date IS NULL THEN
+            start_date := session_date[i];
+        END IF;
+
+        IF session_date[i] < start_date THEN
+            start_date := session_date[i];
+        END IF;
+
+        IF end_date IS NULL THEN
+            end_date := session_date[i];
+        END IF;
+
+        IF session_date[i] > end_date THEN
+            end_date := session_date[i];
+        END IF;
+
+        CALL add_session(course_id, launch_date, current_sid, session_date[i], session_start_hour[i], room_id[i], current_available_instructor);
+        current_sid := current_sid + 1;
+    END LOOP;
+
+    INSERT INTO Offerings (course_id, launch_date, start_date, end_date, registration_deadline, fees, seating_capacity, target_number_registrations, eid)
+    VALUES (course_id, launch_date, start_date, end_date, registration_deadline, fees, total_seating_capacity, target_number_registrations, eid);	
+END;
+$$ LANGUAGE plpgsql;
+
 -- 11.
 CREATE OR REPLACE PROCEDURE add_course_package (package_name TEXT, price INT, num_free_registrations INT, sale_start_date DATE, sale_end_date DATE)
 AS $$
@@ -476,6 +559,26 @@ BEGIN
         'redeemed_sessions_information', session_json
 	);
 END;
+$$ LANGUAGE plpgsql;
+
+-- 15
+
+CREATE OR REPLACE FUNCTION get_available_course_offerings()
+RETURNS TABLE (title TEXT, area TEXT, start_date DATE, end_date DATE, registration_deadline DATE, fees INT, remaining_seats INT)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT Courses.title, Courses.area, Offerings.start_date, Offerings.end_date, Offerings.registration_deadline, Offerings.fees, 
+        (Offerings.seating_capacity - coalesce(Registrations.num_registrations, 0) - coalesce(Redemptions.num_redemptions, 0)) AS remaining_seats
+    FROM Courses NATURAL JOIN Offerings
+        NATURAL LEFT OUTER JOIN (SELECT course_id, launch_date, count(*)::INT AS num_registrations 
+                        FROM Registers GROUP BY course_id, launch_date) AS Registrations
+        NATURAL LEFT OUTER JOIN (SELECT course_id, launch_date, count(*)::INT AS num_redemptions 
+                        FROM Redeems GROUP BY course_id, launch_date) AS Redemptions
+    WHERE Offerings.registration_deadline >= NOW()
+    AND (coalesce(num_registrations, 0) + coalesce(Redemptions.num_redemptions, 0)) < Offerings.seating_capacity
+    ORDER BY Offerings.registration_deadline, Courses.title;
+END
 $$ LANGUAGE plpgsql;
 
 -- 16.
@@ -655,6 +758,49 @@ BEGIN
         END IF;
         
     END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 20.
+CREATE OR REPLACE PROCEDURE cancel_registration (cust_id INT, course_id INT, launch_date date) 
+AS $$
+DECLARE
+    cust_cc_number char(20);
+    cancelled_sid INT;
+BEGIN
+    SELECT cc_number INTO cust_cc_number
+    FROM Owns
+    WHERE Owns.cust_id = cancel_registration.cust_id
+    ORDER BY from_date desc
+    LIMIT 1;
+
+    SELECT sid
+    INTO cancelled_sid
+    FROM Registers
+    WHERE Registers.launch_date = cancel_registration.launch_date
+        AND Registers.course_id = cancel_registration.course_id
+        AND Registers.cc_number = cust_cc_number
+    ORDER BY reg_date desc
+    LIMIT 1;
+
+    IF cancelled_sid IS NULL THEN 
+        SELECT sid
+        INTO cancelled_sid
+        FROM Redeems
+        WHERE Redeems.launch_date = cancel_registration.launch_date
+            AND Redeems.course_id = cancel_registration.course_id
+            AND Redeems.cc_number = cust_cc_number
+        ORDER BY redeem_date desc
+        LIMIT 1;
+    END IF;
+
+    IF cancelled_sid IS NULL THEN
+        RAISE EXCEPTION 'No valid sid matches the course offering and cust_id.';
+    END IF;
+
+    INSERT INTO Cancels (cancel_date, sid, course_id, launch_date, cust_id, refund_amt, package_credit)
+    VALUES (NOW()::date, cancelled_sid, cancel_registration.course_id,
+        cancel_registration.launch_date, cancel_registration.cust_id, 0, 0);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -952,3 +1098,5 @@ $$ LANGUAGE sql;
 -- CALL add_course_package('TESTING', 10, 5, '2021-01-01', '2021-05-05');
 -- CALL buy_course_package(1, 1);
 -- SELECT get_my_course_package(1);
+-- CALL add_course('Advance Team Project Management', 'Advanced module on project management in the real world.', 'project management', 1);
+-- call add_course_offering(3, 200, '2021-04-01', '2021-05-03', 100, 11, '{"2021-06-07"}', '{20}', '{6}');
