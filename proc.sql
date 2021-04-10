@@ -1,8 +1,8 @@
 -- CS2102 Project Team 41 proc.sql
 
 -- Routine Tracker
--- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 21, 22, 23, 24, 25
--- TODO: 10, 15, 20, 26, 27, 28, 29, 30
+-- Completed/In-Process: 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
+-- TODO: 10, 15, 26, 27, 28, 29, 30
 
 -- 1.
 -- TODO: IF not administrator/manager/instructor
@@ -655,6 +655,49 @@ BEGIN
         END IF;
         
     END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 20.
+CREATE OR REPLACE PROCEDURE cancel_registration (cust_id INT, course_id INT, launch_date date) 
+AS $$
+DECLARE
+    cust_cc_number char(20);
+    cancelled_sid INT;
+BEGIN
+    SELECT cc_number INTO cust_cc_number
+    FROM Owns
+    WHERE Owns.cust_id = cancel_registration.cust_id
+    ORDER BY from_date desc
+    LIMIT 1;
+
+    SELECT sid
+    INTO cancelled_sid
+    FROM Registers
+    WHERE Registers.launch_date = cancel_registration.launch_date
+        AND Registers.course_id = cancel_registration.course_id
+        AND Registers.cc_number = cust_cc_number
+    ORDER BY reg_date desc
+    LIMIT 1;
+
+    IF cancelled_sid IS NULL THEN 
+        SELECT sid
+        INTO cancelled_sid
+        FROM Redeems
+        WHERE Redeems.launch_date = cancel_registration.launch_date
+            AND Redeems.course_id = cancel_registration.course_id
+            AND Redeems.cc_number = cust_cc_number
+        ORDER BY redeem_date desc
+        LIMIT 1;
+    END IF;
+
+    IF cancelled_sid IS NULL THEN
+        RAISE EXCEPTION 'No valid sid matches the course offering and cust_id.';
+    END IF;
+
+    INSERT INTO Cancels (cancel_date, sid, course_id, launch_date, cust_id, refund_amt, package_credit)
+    VALUES (NOW()::date, cancelled_sid, cancel_registration.course_id,
+        cancel_registration.launch_date, cancel_registration.cust_id, 0, 0);
 END;
 $$ LANGUAGE plpgsql;
 
