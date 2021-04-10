@@ -74,9 +74,6 @@ CREATE TABLE IF NOT EXISTS Course_areas (
 CREATE TABLE IF NOT EXISTS Instructors (
     eid     integer     primary key references Employees
                         on delete cascade
-    -- area    text        not null,
-
-    -- foreign key (area) references Course_areas (area)
 );
 
 CREATE TABLE IF NOT EXISTS Part_time_instructors (
