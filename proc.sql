@@ -24,8 +24,15 @@ BEGIN
     IF employee_category = 'administrator' AND array_length(course_areas, 1) > 0 THEN
         RAISE EXCEPTION 'Set of course areas should be empty for administrators';
     END IF;
-    IF employee_category = 'instructor' AND array_length(course_areas, 1) IS NULL THEN
-        RAISE EXCEPTION 'Set of course areas should not be empty for instructors specialization areas.';
+    IF employee_category = 'instructor' THEN
+        IF array_length(course_areas, 1) IS NULL THEN
+            RAISE EXCEPTION 'Set of course areas should not be empty for instructors specialization areas.';
+        END IF;
+        FOREACH course_area IN ARRAY course_areas LOOP
+            IF (SELECT COUNT(*) FROM Course_areas WHERE Course_areas.area = course_area) = 0 THEN
+                RAISE EXCEPTION 'The new instructor has an specialization area that does not exist';
+            END IF;
+        END LOOP;
     END IF;
     IF employee_category = 'manager' AND array_length(course_areas, 1) IS NULL THEN
         RAISE EXCEPTION 'Set of course areas should not be empty for managers managed areas.';
@@ -70,6 +77,12 @@ BEGIN
         IF employee_category = 'manager' THEN
             INSERT INTO Managers (eid)
             VALUES (new_eid);
+            FOREACH course_area IN ARRAY course_areas LOOP
+                IF (SELECT COUNT(*) FROM Course_areas WHERE Course_areas.area = course_area) = 0 THEN
+                    INSERT INTO Course_areas (area, eid)
+                    VALUES (course_area, new_eid);
+                END IF;
+            END LOOP;
         END IF;
         IF employee_category = 'instructor' THEN
             INSERT INTO Instructors (eid)
