@@ -662,6 +662,13 @@ BEGIN
         INSERT INTO Redeems (redeem_date, sid, course_id, launch_date, transaction_date, cc_number, package_id)
         VALUES (NOW(), sid, course_id, launch_date, cust_transaction_date, cust_cc_number, cust_package_id);
     END IF;
+
+    UPDATE Buys
+    SET num_remaining_registrations = num_remaining_registrations - 1
+    WHERE transaction_date = cust_transaction_date
+        AND cc_number = cust_cc_number
+        AND package_id = cust_package_id;
+
 END;
 $$ LANGUAGE plpgsql;
 
@@ -744,7 +751,7 @@ BEGIN
 
         IF original_sid IS NOT NULL THEN
             UPDATE Registers
-            SET Registers.sid = update_course_session.new_sid
+            SET sid = update_course_session.new_sid
             WHERE Registers.sid = original_sid
                 AND Registers.launch_date = update_course_session.launch_date
                 AND Registers.course_id = update_course_session.course_id
@@ -770,7 +777,7 @@ BEGIN
 
             IF original_sid IS NOT NULL THEN
                 UPDATE Redeems
-                SET Redeems.sid = update_course_session.new_sid
+                SET sid = update_course_session.new_sid
                 WHERE Redeems.sid = original_sid
                     AND Redeems.launch_date = update_course_session.launch_date
                     AND Redeems.course_id = update_course_session.course_id
@@ -904,7 +911,7 @@ BEGIN
 
         IF num_registrations + num_redeems - num_cancels <= new_seating_capacity THEN
             UPDATE Sessions
-            SET Sessions.rid = update_room.new_rid
+            SET rid = update_room.new_rid
             WHERE Sessions.course_id = update_room.course_id AND
                 Sessions.launch_date = update_room.launch_date AND
                 Sessions.sid = update_room.sid;

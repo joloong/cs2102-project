@@ -168,5 +168,5 @@ CALL cancel_registration(2, 1, '2021-02-01');
 CALL cancel_registration(2, 5, '2021-02-01');
 CALL cancel_registration(3, 1, '2021-03-01');
 CALL cancel_registration(5, 4, '2021-01-01');
-CALL cancel_registration(10, 2,  '2021-01-01');
-CALL cancel_registration(10, 5,  '2021-03-01');
+CALL cancel_registration(10, 2, '2021-01-01');
+CALL cancel_registration(10, 5, '2021-03-01');
