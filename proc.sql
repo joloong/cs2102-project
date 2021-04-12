@@ -178,7 +178,7 @@ BEGIN
     VALUES (cc_number, cvv, expiry_date);
 
     INSERT INTO Owns (cc_number, cust_id, from_date)
-    VALUES (cc_number, new_cust_id, NOW());
+    VALUES (cc_number, cust_id, NOW());
 END;
 $$ LANGUAGE plpgsql;
 
