@@ -704,7 +704,7 @@ BEGIN
         JOIN Offerings O
         ON RSC.launch_date = O.launch_date AND
             RSC.course_id = O.course_id
-    WHERE RSC.session_date <= NOW() AND 
+    WHERE NOW() <= RSC.session_date AND 
         EXTRACT(HOUR from current_time) < RSC.end_time;
 END;
 $$ LANGUAGE plpgsql;
